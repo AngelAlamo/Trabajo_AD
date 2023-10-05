@@ -1,0 +1,69 @@
+---
+title: "Análisis del Dataset Wine Quality"
+author: 
+  - name: Ángel Álamo
+  - name: Juanjo Doblas
+  - name: Óscar Vanrell 
+format: html
+editor: visual
+execute:
+  echo: false
+---
+
+## Introduccción
+
+En este documento se presentará un estudio detallado del Dataset Wine Quality, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/shelvigarg/wine-quality-dataset/). Respecto al estudio, estará enfocado en (???), ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí).
+
+Una vez explicado el objetivo, mostremos los datos que contiene el Dataset.
+
+## Análisis exploratorio de datos
+
+```{r dataset, echo = FALSE, warnign = FALSE}
+
+wine_base = read_csv(file = "winequality.csv")
+
+wine = wine_base %>% 
+  mutate(type = as.factor(type)) %>% 
+  mutate(quality = as.ordered(quality))
+
+wine %>% 
+  glimpse
+
+summary(wine)
+
+```
+Las variables que contiene el dataset son:
+
+- type: variable cualitativa binaria que toma los valores "white" y "red". La frecuencia absoluta de cada valor es:
+
+```{r}
+table(wine$type)
+
+```
+- fixed acidity:
+
+- volatile acidity:
+
+- citric acid:
+
+- residual sugar:
+
+- chlorides:
+
+- free sulfur dioxide:
+
+- total sulfur dioxide:
+
+- density:
+
+- pH:
+
+- sulphates:
+
+- alcohol:
+
+- quality:
+
+
+
+
