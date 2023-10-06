@@ -19,6 +19,7 @@ Una vez explicado el objetivo, mostremos los datos que contiene el Dataset.
 ## Análisis exploratorio de datos
 
 ```{r dataset, echo = FALSE, warnign = FALSE}
+library(tidyverse)
 
 wine_base = read_csv(file = "winequality.csv")
 
@@ -28,8 +29,6 @@ wine = wine_base %>%
 
 wine %>% 
   glimpse
-
-summary(wine)
 
 ```
 Las variables que contiene el dataset son:
