@@ -34,36 +34,110 @@ summary(wine)
 ```
 Las variables que contiene el dataset son:
 
-- type: variable cualitativa binaria que toma los valores "white" y "red". La frecuencia absoluta de cada valor es:
+- type: variable cualitativa binaria que represetna el color del vino. Toma los valores "white" y "red" y sus frecuencias absolutas son:
+
 
 ```{r}
 table(wine$type)
-
 ```
-- fixed acidity:
 
-- volatile acidity:
 
-- citric acid:
+- fixed acidity (g/L): variable cuantitativa continua que mide la acidez que se encuentra presente de manera natural en el vino. 
 
-- residual sugar:
 
-- chlorides:
+```{r}
+summary(wine$`fixed acidity`)
+```
 
-- free sulfur dioxide:
 
-- total sulfur dioxide:
+- volatile acidity (g/L): variable cuantitativa continua que mide la cantidad de ácidos volátiles.
 
-- density:
 
-- pH:
+```{r}
+summary(wine$`volatile acidity`)
+```
 
-- sulphates:
 
-- alcohol:
 
-- quality:
+- citric acid (g/L): variable cuantitativa continua que representa la cantidad de ácido cítrico en el vino.
 
+
+```{r}
+summary(wine$`citric acid`)
+```
+
+
+- residual sugar (g/L): variable cuantitativa continua que mide el nivel de azúcar que permanece sin fermentar en el vino después del proceso de fermentación alcohólica.
+
+
+```{r}
+summary(wine$`residual sugar`)
+```
+
+
+- chlorides (mg/L): variable cuantitativa continua que representa la concentración de cloruros presentes.
+
+
+```{r}
+summary(wine$chlorides)
+```
+
+
+- free sulfur dioxide (mg/L): variable cuantitativa continua que mide la cantidad de dióxido de azufre que se encuentra en forma libre.
+
+
+```{r}
+summary(wine$`free sulfur dioxide`)
+```
+
+
+- total sulfur dioxide (mg/L): variable cuantitativa continua que representa el dióxido de azufre total presente.
+
+
+```{r}
+summary(wine$`total sulfur dioxide`)
+```
+
+
+- density (g/mL): variable cuantitativa continua que mide la densidad del vino.
+
+
+
+```{r}
+summary(wine$density)
+```
+
+
+- pH: variable cuantitativa continua que representa el nivel de pH del vino.
+
+
+```{r}
+summary(wine$pH)
+```
+
+
+- sulphates (mg/L): variable cuantitativa continua que mide la presencia de sulfatos en el vino
+
+
+```{r}
+summary(wine$sulphates)
+```
+
+
+- alcohol (g/L): variable cuantitativa continua que mide la cantidad de alochol presente.
+
+
+```{r}
+summary(wine$alcohol)
+```
+
+
+- quality (0-10): variable cualitativa ordinal que refleja la calidad atribuida al vino.
+
+
+```{r}
+table(wine$quality)
+```
 
 
 
