@@ -140,3 +140,75 @@ table(wine$quality)
 
 
 
+
+```{r}
+library(lessR)
+cols = c(  "firebrick", "khaki1")
+PieChart(type, data = wine, main = "Tipos de vinos",fill = cols  )
+```
+
+
+
+
+
+
+(variables cuantitativas)
+```{r}
+wine %>%
+  select(2:12) %>% 
+  glimpse
+```
+
+```{r}
+library(ggcorrplot)
+library(ggplot2)
+wine %>%
+  select(2:12) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  ggcorrplot(., hc.order = TRUE,
+        type = "lower")
+```
+
+(prefiero mil veces el siguiente, pero dejo el de arriba para que lo veais)
+
+```{r, fig.width = 10, fig.height = 6}
+library(psych)
+wine %>%
+  select(2:12) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+```
+Vamos a acompañar este cálculo con el dibujo de unos graficos de puntos de los pares de variables que presentan mayor correlación, es decir, las que tienen los valores más cercanos a 1 y -1, las cuales son `free sulfur dioxide`~`total sulfur dioxide` y density~alcohol
+
+```{r, fig.width = 10, fig.height = 6}
+wine %>%
+  ggplot(aes(x=`free sulfur dioxide`,y=`total sulfur dioxide`)) +
+  geom_point(size = 1,col = c( "firebrick", "khaki1")[as.integer(wine$type)],  na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.1) + 
+  theme_bw() #+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+
+```{r, fig.width = 10, fig.height = 6}
+wine %>%
+  ggplot(aes(x=density,y=alcohol)) +
+  geom_point(size = 1,col = c( "firebrick", "khaki1")[as.integer(wine$type)],na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.1) + 
+  theme_bw() 
+```
+
+Dibujamos ahora uno del par de variables sulphates~alcohol, las cuales son las que presentan un valor de correlacion de $-0.00$ 
+```{r, fig.width = 10, fig.height = 6}
+wine %>%
+  ggplot(aes(x=sulphates,y=alcohol)) +
+  geom_point(size = 1,col = c( "firebrick", "khaki1")[as.integer(wine$type)],na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.1) + 
+  theme_bw() 
+```
+(estos 3 gráficos no se si son de utilidad o que, era por ir haciendo)
+
+(como os he dicho por whats tengo mas codigo hecho pero no me gusta y tarda mucho en runnear asi que no lo he añadido, ya me direis)
