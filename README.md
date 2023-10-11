@@ -1,8 +1,10 @@
-# Trabajo_AD
+# Practica 3 Análisis de Datos
 
-Trabajo general de la asignatura Análisis de datos. 
+Tercera entrega de la asignatura Análisis de Datos.
 
-Dataset: Wine quality. Contiene muestras de vino tinto y vino blanco de Vinho Verde, obtenidas en el norte de Portugal.
+Autores: Ángel Álamo, Juanjo Doblas, Óscar Vanrell
+
+Dataset: Spotify 2023. Contiene muestras de las canciones más famosas de 2023 en Spotify.
 
 Estudio: 
 - Análisis exploratorio de datos: descripción de las variables, representación gráfica de variables cuantitativas en función de variables cualitativas de interés (...)
