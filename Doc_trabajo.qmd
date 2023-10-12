@@ -1,5 +1,5 @@
 ---
-title: "Análisis del Dataset Wine Quality"
+title: "Análisis del Dataset spotify-2023"
 author: 
   - name: Ángel Álamo
   - name: Juanjo Doblas
@@ -29,6 +29,24 @@ Ahora mostremos un pequeño resumen del conjunto de datos:
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
+
+
+# Cambiamos el tipo de los valores
+
+spotify = spotify %>% 
+  
+  mutate(streams = as.integer(streams), 
+         released_year = as.ordered(released_year),
+         released_month = as.ordered(released_month),
+         released_day = as.ordered(released_day),
+         artist_count = as.factor(artist_count),
+         ) %>%
+  
+  mutate(
+    across(where(is.character), as.factor) # chr a factor
+  )
+
+
 spotify %>% 
   glimpse
 
@@ -36,4 +54,171 @@ spotify %>%
 
 Realicemos una descripción de cada variable:
 
-- _track_name_:
+-   *track_name*: variable cualitativa que muestra el nombre de la canción. Mostramos las 5 primeras canciones presentes:
+
+```{r}
+head(spotify$track_name,5)
+```
+
+
+-   *artist(s)_name*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
+
+```{r}
+head(spotify$`artist(s)_name`,5)
+```
+
+
+-   *artist_count*: variable cualitativa que mide el número de artistas que contribuyen a la canción.
+
+```{r, warning = FALSE}
+summary(spotify$artist_count)
+```
+
+-   *released_year*: variable cualitativa ordinal que representa el año en el que se lanzó.
+
+```{r}
+summary(spotify$released_year)
+```
+
+
+-   *released_month*: variable cualitativa ordinal que representa el mes en el que se lanzó.
+
+```{r}
+summary(spotify$released_month)
+```
+
+
+-   *released_day*: variable cualitativa ordinal que representa el día en el que se lanzó.
+
+```{r}
+summary(spotify$released_day)
+```
+
+
+-   *in_spotify_playlists*: variable cuantitativa que mide el número de listas de reproducción de Spotify en las que está incluida la canción.
+
+```{r}
+summary(spotify$in_spotify_playlists)
+```
+
+
+-   *in_spotify_charts*: variable cauntitativa que mide la presencia y el rango de la canción en las listas de Spotify.
+
+```{r}
+summary(spotify$in_spotify_charts)
+```
+
+
+-   *streams*: variable cuantitativa que representa el número de reproducciones en Spotify
+
+```{r}
+summary(spotify$streams)
+```
+
+
+-   *in_apple_playlists*: variable cuantitativa que mide el número de listas de reproducción de Apple Music en las que está incluida la canción.
+
+```{r}
+summary(spotify$in_apple_playlists)
+```
+
+
+-   *in_apple_charts*: variable cauntitativa que mide la presencia y el rango de la canción en las listas de Apple Music.
+
+```{r}
+summary(spotify$in_apple_charts)
+```
+
+
+-   *in_deezer_playlists*: variable cuantitativa que mide el número de listas de reproducción de Deezer en las que está incluida la canción.
+
+```{r}
+summary(spotify$in_deezer_playlists)
+```
+
+
+-   *in_deezer_charts*: variable cuantitativa que mide la presencia y el rango de la canción en las listas de Deezer.
+
+```{r}
+summary(spotify$in_deezer_charts)
+```
+
+
+-   *in_shazam_charts*: variable cuantitativa que mide la presencia y el rango de la canción en las listas de Shazam.
+
+```{r}
+summary(spotify$in_shazam_charts)
+```
+
+
+-   *bpm*: variable cuantitativa que mide el número de beats por minuto (bpm) de la canción.
+
+```{r}
+summary(spotify$bpm)
+```
+
+
+-   *key*: variable cualitativa que expresa la tonalidad de la canción.
+
+```{r}
+summary(spotify$key)
+```
+
+
+-   *mode*: variable cualitativa que representa la escala de la canción
+
+```{r}
+summary(spotify$mode)
+```
+
+
+-   *danceability_%*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
+
+```{r}
+summary(spotify$`danceability_%`)
+```
+
+
+-   *valence_%*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
+
+```{r}
+summary(spotify$`valence_%`)
+```
+
+
+-   *energy_%*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
+
+```{r}
+summary(spotify$`energy_%`)
+```
+
+
+-   *acousticness_%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
+
+```{r}
+summary(spotify$`acousticness_%`)
+```
+
+
+-   *instrumentalness_%*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
+
+```{r}
+summary(spotify$`instrumentalness_%`)
+```
+
+
+-   *liveness_%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
+
+```{r}
+summary(spotify$`liveness_%`)
+```
+
+
+-   *speechiness_%*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
+
+```{r}
+summary(spotify$`speechiness_%`)
+```
+
+
+
