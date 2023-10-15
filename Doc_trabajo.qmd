@@ -12,13 +12,15 @@ execute:
 
 ## Introducción
 
-En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). Respecto al estudio, estará enfocado en (???), ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí).
+En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación
+
+Respecto al estudio, estará enfocado en (???) `r # Ver qué características son claves para sacar una canción exitosa`, ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí).
 
 Una vez explicado el objetivo, mostremos los datos que contiene el Dataset.
 
-## Análisis exploratorio de datos
+## Análisis multivariante exploratorio de datos
 
-Primero carguemos la librería 'tidyverse' y el de datos.
+Primero carguemos la librería 'tidyverse'.
 
 ```{r libreria, include = FALSE}
 library(tidyverse)
@@ -29,196 +31,209 @@ Ahora mostremos un pequeño resumen del conjunto de datos:
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
-
-
 # Cambiamos el tipo de los valores
 
-spotify = spotify %>% 
-  
+spotify2 <- spotify %>% 
   mutate(streams = as.integer(streams), 
          released_year = as.ordered(released_year),
          released_month = as.ordered(released_month),
-         released_day = as.ordered(released_day),
-         artist_count = as.factor(artist_count),
-         ) %>%
-  
-  mutate(
-    across(where(is.character), as.factor) # chr a factor
-  )
+         released_day = as.ordered(released_day)) %>%
+         #artist_count = as.ordered(artist_count)
+  mutate(across(where(is.character), as.factor)) # chr a factor
 
-
-spotify %>% 
+spotify2 %>% 
   glimpse
-
 ```
+
+### Descripción de las variables
 
 Realicemos una descripción de cada variable:
 
 -   *track_name*: variable cualitativa que muestra el nombre de la canción. Mostramos las 5 primeras canciones presentes:
 
-```{r}
-head(spotify$track_name,5)
+```{r head track name}
+head(spotify2$track_name,5)
 ```
 
 
 -   *artist(s)_name*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
 
-```{r}
-head(spotify$`artist(s)_name`,5)
+```{r head artist name}
+head(spotify2$`artist(s)_name`,5)
 ```
 
 
 -   *artist_count*: variable cualitativa que mide el número de artistas que contribuyen a la canción.
 
-```{r, warning = FALSE}
-summary(spotify$artist_count)
+```{r summary artist count}
+summary(spotify2$artist_count)
 ```
 
 -   *released_year*: variable cualitativa ordinal que representa el año en el que se lanzó.
 
-```{r}
-summary(spotify$released_year)
+```{r summary released year}
+summary(spotify2$released_year)
 ```
 
 
 -   *released_month*: variable cualitativa ordinal que representa el mes en el que se lanzó.
 
-```{r}
-summary(spotify$released_month)
+```{r summary released month}
+summary(spotify2$released_month)
 ```
 
 
 -   *released_day*: variable cualitativa ordinal que representa el día en el que se lanzó.
 
-```{r}
-summary(spotify$released_day)
+```{r summary released day}
+summary(spotify2$released_day)
 ```
 
 
 -   *in_spotify_playlists*: variable cuantitativa que mide el número de listas de reproducción de Spotify en las que está incluida la canción.
 
-```{r}
-summary(spotify$in_spotify_playlists)
+```{r summary spotify playlists}
+summary(spotify2$in_spotify_playlists)
 ```
 
 
 -   *in_spotify_charts*: variable cauntitativa que mide la presencia y el rango de la canción en las listas de Spotify.
 
-```{r}
-summary(spotify$in_spotify_charts)
+```{r summary spotify charts}
+summary(spotify2$in_spotify_charts)
 ```
 
 
 -   *streams*: variable cuantitativa que representa el número de reproducciones en Spotify
 
-```{r}
-summary(spotify$streams)
+```{r summary streams}
+summary(spotify2$streams)
 ```
 
 
 -   *in_apple_playlists*: variable cuantitativa que mide el número de listas de reproducción de Apple Music en las que está incluida la canción.
 
-```{r}
-summary(spotify$in_apple_playlists)
+```{r summary apple playlists}
+summary(spotify2$in_apple_playlists)
 ```
 
 
 -   *in_apple_charts*: variable cauntitativa que mide la presencia y el rango de la canción en las listas de Apple Music.
 
-```{r}
-summary(spotify$in_apple_charts)
+```{r summary apple charts}
+summary(spotify2$in_apple_charts)
 ```
 
 
 -   *in_deezer_playlists*: variable cuantitativa que mide el número de listas de reproducción de Deezer en las que está incluida la canción.
 
-```{r}
-summary(spotify$in_deezer_playlists)
+```{r summary deezer playlists}
+summary(spotify2$in_deezer_playlists)
 ```
 
 
 -   *in_deezer_charts*: variable cuantitativa que mide la presencia y el rango de la canción en las listas de Deezer.
 
-```{r}
-summary(spotify$in_deezer_charts)
+```{r summary deezer charts}
+summary(spotify2$in_deezer_charts)
 ```
 
 
 -   *in_shazam_charts*: variable cuantitativa que mide la presencia y el rango de la canción en las listas de Shazam.
 
-```{r}
-summary(spotify$in_shazam_charts)
+```{r summary shazam charts}
+summary(spotify2$in_shazam_charts)
 ```
 
 
 -   *bpm*: variable cuantitativa que mide el número de beats por minuto (bpm) de la canción.
 
-```{r}
-summary(spotify$bpm)
+```{r summary bpm}
+summary(spotify2$bpm)
 ```
 
 
 -   *key*: variable cualitativa que expresa la tonalidad de la canción.
 
-```{r}
-summary(spotify$key)
+```{r summary key}
+summary(spotify2$key)
 ```
 
 
 -   *mode*: variable cualitativa que representa la escala de la canción
 
-```{r}
-summary(spotify$mode)
+```{r summary mode}
+summary(spotify2$mode)
 ```
 
 
 -   *danceability_%*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
 
-```{r}
-summary(spotify$`danceability_%`)
+```{r summary danceability}
+summary(spotify2$`danceability_%`)
 ```
 
 
 -   *valence_%*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
 
-```{r}
-summary(spotify$`valence_%`)
+```{r summary valence}
+summary(spotify2$`valence_%`)
 ```
 
 
 -   *energy_%*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
 
-```{r}
-summary(spotify$`energy_%`)
+```{r summary energy}
+summary(spotify2$`energy_%`)
 ```
 
 
 -   *acousticness_%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
 
-```{r}
-summary(spotify$`acousticness_%`)
+```{r summary acousticness}
+summary(spotify2$`acousticness_%`)
 ```
 
 
 -   *instrumentalness_%*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
 
-```{r}
-summary(spotify$`instrumentalness_%`)
+```{r summary instrumentalness}
+summary(spotify2$`instrumentalness_%`)
 ```
 
 
 -   *liveness_%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
 
-```{r}
-summary(spotify$`liveness_%`)
+```{r summary liveness}
+summary(spotify2$`liveness_%`)
 ```
 
 
 -   *speechiness_%*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
 
-```{r}
-summary(spotify$`speechiness_%`)
+```{r summary speechiness}
+summary(spotify2$`speechiness_%`)
 ```
 
+### Matriz de dispersión
 
+```{r matriz de dispersion, fig.height=20, fig.width=20}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit() %>% 
+  pairs(pch = 18)
+```
 
+### Matriz de covarianzas
+
+```{r matriz de covarianzas, fig.height=10, fig.width=10}
+library(ggcorrplot)
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  ggcorrplot(., hc.order = TRUE,
+        type = "lower",
+        colors = c("blue",
+                    "white", "red"))
+```
