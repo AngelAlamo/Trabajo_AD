@@ -14,7 +14,22 @@ execute:
 
 En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación
 
-Respecto al estudio, estará enfocado en (???) `r # Ver qué características son claves para sacar una canción exitosa`, ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí).
+Respecto al estudio, estará enfocado en (???) `r # Ver qué características son claves para sacar una canción exitosa`, ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí)
+`r # 1. se escuchan mas las canciones que salen en verano?`
+`r # 2. que caracteristicas son mas comunes en una cancion exitosa`
+`r # 3. son igual de famosas las canciones en distintas plataformas`
+
+`r # 4. Que artista tiene mas canciones en listas de spoty`
+`r # 5. Top canciones/artistas con mayores reproducciones en las plataformas`
+`r # cuantas canciones hay de cada artista`
+
+`r # 6. Top mejores canciones 2023 (o diferenciando por años??)`
+`r # 7. correlacion entre listas y reproducciones de spoty`
+
+
+
+`r # diferenciar entre solo o colaboracion, mode `
+
 
 Una vez explicado el objetivo, mostremos los datos que contiene el Dataset.
 
@@ -27,6 +42,8 @@ library(tidyverse)
 ```
 
 Ahora mostremos un pequeño resumen del conjunto de datos:
+
+`r #cambiaria el nombre de (streams) a (streams en spoty)`
 
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
@@ -97,11 +114,13 @@ summary(spotify2$in_spotify_playlists)
 ```
 
 
--   *in_spotify_charts*: variable cauntitativa que mide la presencia y el rango de la canción en las listas de Spotify.
+-   *in_spotify_charts*: variable cuantitativa que mide la presencia y el rango de la canción en las listas de Spotify. `r # imagino que cuanto mas cerca del 0 mejor no? NI IDEA DE COMO FUNCIONA`
 
 ```{r summary spotify charts}
 summary(spotify2$in_spotify_charts)
 ```
+
+
 
 
 -   *streams*: variable cuantitativa que representa el número de reproducciones en Spotify
@@ -226,6 +245,8 @@ spotify2 %>%
 
 ### Matriz de covarianzas
 
+
+
 ```{r matriz de covarianzas, fig.height=10, fig.width=10}
 library(ggcorrplot)
 spotify2 %>%
@@ -237,3 +258,98 @@ spotify2 %>%
         colors = c("blue",
                     "white", "red"))
 ```
+
+
+
+
+
+
+
+# Estudio caracteristicas de las canciones:
+
+
+Correlación de las caracteristicas de una cancion para responder a la pregunta de que caracteristicas comunes tienen las canciones mas exitosas.
+
+
+
+```{r, fig.width = 10, fig.height = 6}
+library(psych)
+spotify2 %>%
+  select(streams,bpm, 18:24) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+```
+```{r, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
+  geom_point(size = 2,  na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
+  theme_bw() #+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+
+`r # diferenciar entre mode major o minor??`
+
+```{r, fig.width = 10, fig.height = 6}
+library(MVA)
+a1 <-spotify2 %>%
+  select(`energy_%`,`acousticness_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g<- bvbox(a1,xlab = "energia", 
+           ylab = "acustica",
+      pch = 19, cex = 1.25, col = "red")
+
+```
+
+```{r, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
+  geom_point(size = 2,  na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
+  theme_bw() #+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+
+```{r, fig.width = 10, fig.height = 6}
+library(MVA)
+a1 <-spotify2 %>%
+  select(`danceability_%`,`valence_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g<- bvbox(a1,xlab = "energia", 
+           ylab = "acustica",
+      pch = 19, cex = 1.25, col = "red")
+
+```
+```{r, fig.width = 10, fig.height = 10}
+a<-spotify2 %>%
+  select(bpm,mode, 18:24) %>%
+  na.omit(.)
+library(GGally)
+ggpairs(a
+       )
+```
+
+
+
+# Estuido por plataformas:
+
+```{r, fig.width = 15, fig.height = 8}
+library(psych)
+spotify2 %>%
+  select( 7:14) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 1 , main = "Correlación Entre Plataformas"
+       )
+```
+
