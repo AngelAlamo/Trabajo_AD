@@ -14,19 +14,23 @@ execute:
 
 En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación
 
-Respecto al estudio, estará enfocado en (???) `r # Ver qué características son claves para sacar una canción exitosa`, ya que el objetivo principal de este análisis es dar respuestas a las siguientes cuestiones: (Insertar preguntas aquí)
-`r # 1. se escuchan mas las canciones que salen en verano?`
-`r # 2. que caracteristicas son mas comunes en una cancion exitosa`
-`r # 3. son igual de famosas las canciones en distintas plataformas`
+Respecto al estudio, estará enfocado en determinar cuáles son las características comunes entre las canciones más reproducidas, para ello, intentaremos responder las siguientes preguntas para obtener conclusiones:
 
-`r # 4. Que artista tiene mas canciones en listas de spoty`
-`r # 5. Top canciones/artistas con mayores reproducciones en las plataformas`
-`r # cuantas canciones hay de cada artista`
+1. Analisis de la popularidad de la canción según la estación del año en que salió la canción.
 
-`r # 6. Top mejores canciones 2023 (o diferenciando por años??)`
-`r # 7. correlacion entre listas y reproducciones de spoty`
+2. Qué características son comunes entre las 100 canciones más reproducidas.
 
+3. ¿Son igual de famosas las canciones en distintas plataformas?
 
+4. Que artista tiene mas canciones en listas de Spotify
+
+5. Top canciones/artistas con mayores reproducciones en las plataformas
+
+6. Top 3 artistas con más canciones en el dataset (y porcentajes) y analizar sus canciones
+
+7. correlacion entre listas y reproducciones de Spotify `r #La 7 y la 3 son iguales?`
+
+8. Canciones más famosas por décadas y mirar si cambian las caracteristicas comunes
 
 `r # diferenciar entre solo o colaboracion, mode `
 
@@ -43,7 +47,7 @@ library(tidyverse)
 
 Ahora mostremos un pequeño resumen del conjunto de datos:
 
-`r #cambiaria el nombre de (streams) a (streams en spoty)`
+
 
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
@@ -330,12 +334,11 @@ g<- bvbox(a1,xlab = "energia",
 
 ```
 ```{r, fig.width = 10, fig.height = 10}
-a<-spotify2 %>%
-  select(bpm,mode, 18:24) %>%
-  na.omit(.)
-library(GGally)
-ggpairs(a
-       )
+#a<-spotify2 %>%
+ # select(bpm,mode, 18:24) %>%
+  #na.omit(.)
+#library(GGally)
+#ggpairs(a)
 ```
 
 
@@ -352,4 +355,82 @@ spotify2 %>%
        cex = 1 , main = "Correlación Entre Plataformas"
        )
 ```
+
+
+
+
+#Top 100 canciones y sus caracteristicas:
+
+
+Veamos cuales son las 10 canciones mas escuchadas:
+```{r}
+
+a10 <- spotify2 %>%
+  arrange(desc(streams)) %>%
+  slice_head( n = 10 )
+head(a10)
+```
+
+```{r, fig.width = 12, fig.height = 6}
+
+
+a10  %>%
+  ggplot() + 
+  geom_col(aes(x = track_name , y = streams, fill = `artist(s)_name`)) +
+  
+  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  theme_bw() + 
+  guides(fill = guide_legend(title = "Artista")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+
+`r #Quiero un grafico con las 10 canciones mas reproducidas en orden decreciente, pero a pesar de cambiar el orden de las filas del data, me lo sigue poniendo como le sale de los cojones. Y cambiar colores que son feos`
+
+
+
+`r #Aqui me gustaria hacer otro gráfico con los artistas que más reproducciones tienen en spoty pero ahora no se como sumar todas las reproducciones de cada cancion por artista. Lo que sigue es un intento pero nop:`
+```{r, fig.width = 12, fig.height = 6}
+
+
+a10  %>%
+  group_by(`artist(s)_name`) %>% 
+  summarise(total_streams = sum(streams), .groups = "drop") %>%
+  ggplot() + 
+  geom_col(aes(x = `artist(s)_name` , y = total_streams, fill = `artist(s)_name`)) +
+  
+  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
+  theme_bw() + 
+  guides(fill = guide_legend(title = "Artista")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+
+
+```{r,fig.width = 10, fig.height = 6}
+
+a100 <- spotify2 %>%
+  slice_max(streams, n = 100)
+
+
+a100 %>%
+  select(streams,bpm, 18:24) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+
+```
+`r #Yo diria que hay más correlación, mirad top 50 si quereis y podemos mirar de sacar conclusiones`
+
+
 
