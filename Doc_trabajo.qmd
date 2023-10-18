@@ -279,7 +279,7 @@ p_1 = spotify2 %>%
 
 
 ```{r  streams segun estacion(2), fig.width = 10}
-
+library(patchwork)
 colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
 
 p_2 = spotify2 %>%
@@ -295,7 +295,8 @@ p_2 = spotify2 %>%
   #scale_color_manual(values = colores_degradados)
 
 
-p_1 + p_2
+p_1
+p_2
 
 ```
 
@@ -318,6 +319,14 @@ spotify2 %>%
         axis.title = element_text(face = "bold"),
         legend.title = element_text(size = 10, face = "bold"))
 ```
+
+
+
+
+
+
+
+
 
 
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
@@ -361,7 +370,7 @@ Correlación de las caracteristicas de una cancion para responder a la pregunta 
 ```{r, fig.width = 10, fig.height = 6}
 #library(psych)
 #spotify2 %>%
-#  select(streams,bpm, 18:24) %>%
+#  select(streams,bpm, 19:25) %>%
 #  na.omit(.) %>% 
 #  cor(.) %>% 
 #  corPlot(.,
