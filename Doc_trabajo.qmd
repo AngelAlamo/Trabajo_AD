@@ -245,7 +245,8 @@ Realizaremos un boxplot, añadiendo la media, para visualizar la variable *strea
 -   Verano: meses 6, 7 y 8
 -   Otoño: meses 9, 10 y 11
 
-```{r streams segun estacion, fig.height=5, fig.width=8}
+```{r streams segun estacion(1), fig.height=5, fig.width=8}
+
 # Añadimos la variable estación de lanzamiento y la posicionamos antes de mes de lanzamiento
 spotify2 <- spotify2 %>%
   mutate("released_season" = case_when(
@@ -258,7 +259,8 @@ spotify2 <- spotify2 %>%
 
 colores_clase = c("brown", "green", "yellow", "blue")
 
-spotify2 %>% 
+p_1 = spotify2 %>% 
+  drop_na(released_season, streams) %>% 
   group_by(released_season) %>% 
   ggplot() + 
   geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
@@ -273,6 +275,51 @@ spotify2 %>%
   scale_color_manual(values = colores_clase)
   
 ```
+
+
+
+```{r  streams segun estacion(2), fig.width = 10}
+
+colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
+
+p_2 = spotify2 %>%
+  ggplot() +
+  geom_point(aes(x = released_day, y = streams, color = released_month), na.rm = TRUE) +
+  facet_grid(.~released_season) +
+  labs(x = "Día del més", y = "Streams") +
+  guides(fill = guide_legend(title = "Season")) +
+  theme_bw() +
+  theme(axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+  #scale_color_manual(values = colores_degradados)
+
+
+p_1 + p_2
+
+```
+
+
+```{r}
+
+# Boxplots por mes agrupados por estación
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = released_season, y = streams, color = released_month)) +
+  stat_summary(aes(x = released_season, y = streams), fun = mean, geom = "point", shape = 19, 
+               size = 1, color = "black") +
+  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify") +
+  theme_bw() + 
+  guides(fill = guide_legend(title = "Estaciones del año")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+```
+
+
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
 
 ### Matriz de dispersión
