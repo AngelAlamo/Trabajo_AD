@@ -8,40 +8,32 @@ format: html
 editor: visual
 execute:
   echo: false
+  message: false
 ---
 
 ## Introducción
 
-En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación
+En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación exceptuando la eliminación de ciertas variables que no son de interés en nuestro estudio.
 
-Respecto al estudio, estará enfocado en determinar cuáles son las características comunes entre las canciones más reproducidas, para ello, intentaremos responder las siguientes preguntas para obtener conclusiones:
+Respecto al estudio, estará enfocado en determinar cuáles son las características comunes entre las canciones más reproducidas, para ello, intentaremos obtener información de las canciones del dataset a partir de los siguientes puntos:
 
-1. Analisis de la popularidad de la canción según la estación del año en que salió la canción.
+1. Analisis de las reproducciones de la canción según la estación del año.
 
-2. Qué características son comunes entre las 100 canciones más reproducidas.
+2. Características comunes entre las 100 canciones más reproducidas.
 
-3. Que artista tiene mas canciones en listas de Spotify
+3. Artistas con más canciones en listas de Spotify.
 
-4. Top canciones/artistas con mayores reproducciones en las plataformas
+4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
 
-5. Top 3 artistas con más canciones en el dataset (y porcentajes) y analizar sus canciones `{r} Yo `
+5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
-6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify
+6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
 
-7. Canciones más famosas por décadas y mirar si cambian las caracteristicas comunes  `{r} Yo `
-
-
-```{r}
-# 3. ¿Son igual de famosas las canciones en distintas plataformas?
-# 9. Diferenciar entre solo o colaboracion, mode 
-```
+7. Estudio de las canciones según el año y características.
 
 
-Una vez explicado el objetivo, mostremos los datos que contiene el Dataset.
 
-Primero carguemos todas las librerías que usaremos.
-
-```{r libreria, include = FALSE}
+```{r librerias, include = FALSE}
 library(tidyverse)
 library(patchwork)
 library(ggcorrplot)
@@ -49,11 +41,11 @@ library(psych)
 library(patchwork)
 library(MVA)
 library(lessR)
-library(MASS)
 ```
 
-Ahora mostremos un pequeño resumen del conjunto de datos, además de nuestras modificaciones:
+# Dataset
 
+Una vez explicado el objetivo, presentamos el Dataset, mostramos un pequeño resumen del conjunto de datos, además de nuestras modificaciones respecto al tipo de variable y algunas variables nuevas:
 
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
@@ -61,7 +53,7 @@ spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 # Cambiamos el tipo de los valores
 
 spotify2 <- spotify %>% 
-  mutate(streams = as.integer(streams), 
+  mutate(streams = as.numeric(streams), 
          released_year = as.ordered(released_year),
          released_month = as.ordered(released_month),
          released_day = as.ordered(released_day)) %>%
@@ -115,13 +107,11 @@ spotify2 %>%
 
 Realicemos una descripción de cada variable:
 
-
--   *artist(s)_name*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
+-   \*artist(s)\_name\*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
 
 ```{r head artist name}
 head(spotify2$`artist(s)_name`,5)
 ```
-
 
 -   *track_name*: variable cualitativa que muestra el nombre de la canción. Mostramos las 5 primeras canciones presentes:
 
@@ -141,14 +131,13 @@ summary(spotify2$artist_count)
 head(spotify2$collaboration,5)
 ```
 
-
-
 -   *streams*: variable cuantitativa que representa el número de reproducciones en Spotify
 
 ```{r summary streams}
 summary(spotify2$streams)
 ```
--   *artist_streams*:  variable cuantitativa creada por nosotros que representa el número de reproducciones totales por artista en Spotify.
+
+-   *artist_streams*: variable cuantitativa creada por nosotros que representa el número de reproducciones totales por artista en Spotify.
 
 ```{r}
 head(spotify2$artist_streams,5)
@@ -159,6 +148,7 @@ head(spotify2$artist_streams,5)
 ```{r summary released day}
 summary(spotify2$released_day)
 ```
+
 -   *released_season*: variable cualitativa creada por nosotros que representa le estación del año en la que se lanzó la canción:
 
 ```{r}
@@ -171,25 +161,23 @@ head(spotify2$released_season,5)
 summary(spotify2$released_month)
 ```
 
-
 -   *released_year*: variable cualitativa ordinal que representa el año en el que se lanzó.
 
 ```{r summary released year}
 summary(spotify2$released_year)
 ```
+
 -   *in_spotify_playlists*: variable cuantitativa que mide el número de listas de reproducción de Spotify en las que está incluida la canción.
 
 ```{r summary spotify playlists}
 summary(spotify2$in_spotify_playlists)
 ```
 
-
 -   *in_apple_playlists*: variable cuantitativa que mide el número de listas de reproducción de Apple Music en las que está incluida la canción.
 
 ```{r summary apple playlists}
 summary(spotify2$in_apple_playlists)
 ```
-
 
 -   *in_deezer_playlists*: variable cuantitativa que mide el número de listas de reproducción de Deezer en las que está incluida la canción.
 
@@ -203,13 +191,11 @@ summary(spotify2$in_deezer_playlists)
 summary(spotify2$bpm)
 ```
 
-
 -   *key*: variable cualitativa que expresa la tonalidad de la canción.
 
 ```{r summary key}
 summary(spotify2$key)
 ```
-
 
 -   *mode*: variable cualitativa que representa la escala de la canción
 
@@ -217,64 +203,56 @@ summary(spotify2$key)
 summary(spotify2$mode)
 ```
 
-
--   *danceability_%*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
+-   *danceability\_%*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
 
 ```{r summary danceability}
 summary(spotify2$`danceability_%`)
 ```
 
-
--   *valence_%*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
+-   *valence\_%*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
 
 ```{r summary valence}
 summary(spotify2$`valence_%`)
 ```
 
-
--   *energy_%*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
+-   *energy\_%*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
 
 ```{r summary energy}
 summary(spotify2$`energy_%`)
 ```
 
-
--   *acousticness_%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
+-   *acousticness\_%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
 
 ```{r summary acousticness}
 summary(spotify2$`acousticness_%`)
 ```
 
-
--   *instrumentalness_%*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
+-   *instrumentalness\_%*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
 
 ```{r summary instrumentalness}
 summary(spotify2$`instrumentalness_%`)
 ```
 
-
--   *liveness_%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
+-   *liveness\_%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
 
 ```{r summary liveness}
 summary(spotify2$`liveness_%`)
 ```
 
-
--   *speechiness_%*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
+-   *speechiness\_%*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
 
 ```{r summary speechiness}
 summary(spotify2$`speechiness_%`)
 ```
 
-Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a responder las preguntas que nos hemos planteado.
+Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a estudiar las secciones consideradas.
 
-## Popularidad según estación del año.
 
-Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos por la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio:
--   Invierno: meses 12, 1 y 2
--   Primavera: meses 3, 4 y 5
--   Verano: meses 6, 7 y 8
--   Otoño: meses 9, 10 y 11
+
+# 1. Analisis de las reproducciones de la canción según la estación del año.
+
+
+Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos por la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
 
 ```{r streams segun estacion(1), fig.height=5, fig.width=8}
 
@@ -312,8 +290,6 @@ p_1
 
 ```
 
-
-
 ```{r  streams segun estacion(2), fig.width = 10, warning = FALSE}
 colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
 
@@ -329,12 +305,9 @@ p_2 = spotify2 %>%
 
   #scale_color_manual(values = colores_degradados)
 
-
-p_1 +
 p_2
 
 ```
-
 
 ```{r}
 
@@ -357,14 +330,62 @@ spotify2 %>%
 
 
 
+# 2. Características comunes entre las 100 canciones más reproducidas.
 
 
 
 
 
+
+
+# 3. Artistas con más canciones en listas de Spotify.
+
+
+
+
+
+
+
+# 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+
+
+
+
+
+
+# 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+
+
+
+
+
+
+# 6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
+
+
+
+
+
+
+# 7. Estudio de las canciones según el año y características.
+
+
+
+
+
+
+# Vector de medias, covarianzas y contrastes generales
+
+
+
+
+
+
+# Conclusión
 
 
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
+
 
 ### Matriz de dispersión
 
@@ -375,19 +396,21 @@ Podemos ver que las cajas mantienen rangos muy similares y que las canciones exi
   #pairs(pch = 18)
 ```
 
-
 ## Analisis de las variables numéricas
 
-
-Antes de empezar, vamos a realizar un contraste de correlación, donde queremos verificar una hipotesis nuestra de si cuanto más porcentaje de energia transmite una canción, más buena es la canción para bailar, es decir, ver si estas variables tienen una correlación positiva. Para ello llamamos X e Y a las variables "energy_%" y "danceability_%" respectivamente.
+Antes de empezar, vamos a realizar un contraste de correlación, donde queremos verificar una hipotesis nuestra de si cuanto más porcentaje de energia transmite una canción, más buena es la canción para bailar, es decir, ver si estas variables tienen una correlación positiva. Para ello llamamos X e Y a las variables "energy\_%" y "danceability\_%" respectivamente.
 
 $$\begin{cases}
 H_{0}: &  \rho_{X,Y}=0\\
 H_{1}: & \rho_{X,Y}>0
 \end{cases}$$
+
 ```{r}
+
 cor.test(spotify2$`energy_%`, spotify2$`danceability_%`, alternative="greater")
+
 ```
+
 El p-valor 0.0000000003446 nos da evidencia estadísticamente significativa de que, al contrario de lo que pensabamos, rechazamos nuestra hipotesis alternativa de que hay una correlación positiva entre el porcentaje de la energia que transmite la cancion con lo buena que es para bailar. El último valor, el 0.1857333 bajo el cor, es la correlación de Pearson de los dos vectores de pesos.
 
 Como parece que no tenemos mucha idea a la hora de deducir las variables que pueden estar relacionadas, vamos a empezar el estudio de todas las variables conjuntas calculando las matrices de covarianza y correlación de las variables numéricas.
@@ -401,8 +424,8 @@ spotify2 %>%
   cov(.)
 ```
 
-
 Y la matriz de covarianzas "verdadera" es:
+
 ```{r}
 z <- spotify2 %>%
   select(where(is.numeric)) %>%
@@ -413,13 +436,14 @@ cov(z)*(length(z)-1)/length(z)
 
 Su matriz de correlaciones de Pearson es:
 
-```{r}
+```{r, message = FALSE}
 spotify2 %>%
   select(where(is.numeric)) %>%
   na.omit(.) %>% 
   cor(.)
 ```
-Para poder ver mejor estos últimos resutlados hagamos el siguiente gráfico de correlaciones:
+
+Para poder ver mejor estos últimos resultados hagamos el siguiente gráfico de correlaciones:
 
 ```{r matriz de covarianzas, fig.height=10, fig.width=10}
 spotify2 %>%
@@ -431,7 +455,9 @@ spotify2 %>%
         colors = c("blue",
                     "white", "red"))
 ```
-Observamos, por ejemplo, una gran correlación de Pearson positiva entre el total de reproducciones de la canción y los números de listas en las que aparece en diferentes plataformas (streams~in_spoty_playlists = 0.7627, in_spotyofy_playlists~in_deezer_playlists = 0.8188) lo que indica una estrecha relación lineal con pendiente positiva entre estas magnitudes. Valdría la pena, entonces, calcular la recta de regresión lineal de una de estas medidas en función de la otra.
+
+Observamos, por ejemplo, una gran correlación de Pearson positiva entre el total de reproducciones de la canción y los números de listas en las que aparece en diferentes plataformas (streams\~in_spotify_playlists = 0.7627, in_spotify_playlists\~in_deezer_playlists = 0.8188) lo que indica una estrecha relación lineal con pendiente positiva entre estas magnitudes. Valdría la pena, entonces, calcular la recta de regresión lineal de una de estas medidas en función de la otra.
+
 ```{r, fig.width = 10, fig.height = 6}
 spotify2 %>%
   ggplot(aes(x=in_spotify_playlists,y=in_deezer_playlists)) +
@@ -441,14 +467,12 @@ spotify2 %>%
   theme_bw()
 
 ```
+
 En cambio, la correlación de Pearson entre la mayoría del resto de variables es muy cercana a cero, lo que es señal de que la variación conjunta de los pares de estas no tiene una tendencia clara.
 
 
 
-## Estudio caracteristicas de las canciones:
-
-
-```{r}
+```{r, }
 
 PieChart(collaboration, data = spotify2,
          fill = c("#BF3EFF","#87CEFA"),
@@ -457,17 +481,9 @@ PieChart(collaboration, data = spotify2,
 
 ```
 
-
-
-
-
-
 # Estudio caracteristicas de las canciones:
 
-
 Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas de 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
-
-
 
 ```{r correlación características, fig.width = 10, fig.height = 6}
 spotify2 %>%
@@ -479,9 +495,7 @@ spotify2 %>%
        )
 ```
 
-
-Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`
-
+Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`
 
 ```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
 g_1 = spotify2 %>%
@@ -511,7 +525,6 @@ g_11 = bvbox(a1,xlab = "energia",
 g_1 + g_11
 ```
 
-
 ```{r gráfico correl bailable y positividad, fig.width = 10, fig.height = 6}
 spotify2 %>%
   ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
@@ -533,12 +546,10 @@ g<- bvbox(a1,xlab = "bailable",
       pch = 19, cex = 1.25, col = "red")
 
 ```
+
 Así, vemos que cuando una canción es mas energica, menos nivel acustico presenta, mientras que cuanto más positiva es la canción, más buena es para bailar.
 
 Como los resultados generales del estudio de la correlación no nos es muy satisfactorio, vamos a reducir el tamaño de las canciones a las 100 más escuchadas y volveremos a estudiar sus características.
-
-
-
 
 ```{r, fig.width = 10, fig.height = 10}
 #a<-spotify2 %>%
@@ -548,19 +559,12 @@ Como los resultados generales del estudio de la correlación no nos es muy satis
 #ggpairs(a)
 ```
 
-
-
-
-
-
-
-
 #Top 100 canciones y sus caracteristicas:
 
 Empecemos identificando cuales son esas canciones más escuchadas asi como los artistas con mas reproducciones.
 
-
 Veamos cuales son las 10 canciones mas escuchadas:
+
 ```{r tabla 10 mas esuchadas}
 
 a10 <- spotify2 %>%
@@ -623,10 +627,7 @@ b10  %>%
 
 ```
 
-
-
 Volvemos a hacer un estudio de las correlaciones entre las distintas caracteristicas de las canciones como el hecho anteriormente pero ahora con las 100 canciones más escuchadas:
-
 
 ```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
 
@@ -643,12 +644,7 @@ a100 %>%
 
 ```
 
-
-
-Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
-
-
-
+Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
 
 ```{r grafico colaboraciones}
 
@@ -659,7 +655,7 @@ PieChart(collaboration, data = spotify2,
 
 ```
 
-# Estuido por plataformas:
+# Estudio por plataformas:
 
 ```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
 spotify2 %>%
