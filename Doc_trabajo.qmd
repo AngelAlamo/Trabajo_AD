@@ -49,6 +49,7 @@ library(psych)
 library(patchwork)
 library(MVA)
 library(lessR)
+library(MASS)
 ```
 
 Ahora mostremos un pequeño resumen del conjunto de datos, además de nuestras modificaciones:
@@ -374,19 +375,87 @@ Podemos ver que las cajas mantienen rangos muy similares y que las canciones exi
   #pairs(pch = 18)
 ```
 
-### Matriz de covarianzas
 
-```{r matriz de covarianzas, fig.height=10, fig.width=10}
-#spotify2 %>%
- # select(where(is.numeric)) %>%
-  #na.omit(.) %>% 
-  #cor(.) %>% 
-  #ggcorrplot(., hc.order = TRUE,
-   #     type = "lower",
-    #    colors = c("blue",
-     #               "white", "red"))
+## Analisis de las variables numéricas
+
+
+Antes de empezar, vamos a realizar un contraste de correlación, donde queremos verificar una hipotesis nuestra de si cuanto más porcentaje de energia transmite una canción, más buena es la canción para bailar, es decir, ver si estas variables tienen una correlación positiva. Para ello llamamos X e Y a las variables "energy_%" y "danceability_%" respectivamente.
+
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}>0
+\end{cases}$$
+```{r}
+cor.test(spotify2$`energy_%`, spotify2$`danceability_%`, alternative="greater")
+```
+El p-valor 0.0000000003446 nos da evidencia estadísticamente significativa de que, al contrario de lo que pensabamos, rechazamos nuestra hipotesis alternativa de que hay una correlación positiva entre el porcentaje de la energia que transmite la cancion con lo buena que es para bailar. El último valor, el 0.1857333 bajo el cor, es la correlación de Pearson de los dos vectores de pesos.
+
+Como parece que no tenemos mucha idea a la hora de deducir las variables que pueden estar relacionadas, vamos a empezar el estudio de todas las variables conjuntas calculando las matrices de covarianza y correlación de las variables numéricas.
+
+La matriz de covarianzas muestrales es:
+
+```{r}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cov(.)
 ```
 
+
+Y la matriz de covarianzas "verdadera" es:
+```{r}
+z <- spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) 
+
+cov(z)*(length(z)-1)/length(z) 
+```
+
+Su matriz de correlaciones de Pearson es:
+
+```{r}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cor(.)
+```
+Para poder ver mejor estos últimos resutlados hagamos el siguiente gráfico de correlaciones:
+
+```{r matriz de covarianzas, fig.height=10, fig.width=10}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  ggcorrplot(., hc.order = TRUE,
+        type = "lower",
+        colors = c("blue",
+                    "white", "red"))
+```
+Observamos, por ejemplo, una gran correlación de Pearson positiva entre el total de reproducciones de la canción y los números de listas en las que aparece en diferentes plataformas (streams~in_spoty_playlists = 0.7627, in_spotyofy_playlists~in_deezer_playlists = 0.8188) lo que indica una estrecha relación lineal con pendiente positiva entre estas magnitudes. Valdría la pena, entonces, calcular la recta de regresión lineal de una de estas medidas en función de la otra.
+```{r, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  ggplot(aes(x=in_spotify_playlists,y=in_deezer_playlists)) +
+  geom_point(size = 2,  na.rm = TRUE,col = "red") +
+
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
+  theme_bw()
+
+```
+En cambio, la correlación de Pearson entre la mayoría del resto de variables es muy cercana a cero, lo que es señal de que la variación conjunta de los pares de estas no tiene una tendencia clara.
+
+
+
+## Estudio caracteristicas de las canciones:
+
+
+```{r}
+
+PieChart(collaboration, data = spotify2,
+         fill = c("#BF3EFF","#87CEFA"),
+         main = NULL)
+
+
+```
 
 
 
