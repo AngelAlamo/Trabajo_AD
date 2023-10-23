@@ -199,7 +199,7 @@ head(spotify2$released_season,5)
 summary(spotify2$released_year)
 ```
 
--   *época*: variable cualitativa que muestra la época en que pertenece la canción según nuestros grupos: 
+-   *época*: variable cualitativa que muestra la época en que pertenece la canción según nuestros grupos:
 
 ```{r summary epoca, warning = FALSE}
 summary(spotify2$epoca)
@@ -290,7 +290,6 @@ summary(spotify2$`speechiness_%`)
 ```
 
 Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a estudiar las secciones consideradas.
-
 
 ## 1. Analisis de las reproducciones de la canción según la estación del año.
 
@@ -385,11 +384,11 @@ Como podemos observar la mayor parte de pares de variables no presentan correlac
 Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`, `danceability_%`\~`valence_%` y `valence_%`\~`energy_%`
 
 ```{r fig.height=20, fig.width=20}
-spotify2 %>% 
-  select(3:6, 18:22) %>% 
-  ggpairs
+#spotify2 %>% 
+#  select(3:6, 18:22) %>% 
+ # ggpairs
 
-
+#Tarda mucho xd
 ```
 
 ```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
@@ -543,16 +542,7 @@ Podemos observar que ahora tenemos más variables que presentan mayor correlaci�
 
 # 3. Artistas con más canciones en listas de Spotify.
 
-
-
-
-
 ## 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
-
-
-
-
-
 
 ## 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
@@ -781,7 +771,6 @@ Vemos que las canciones se concentran en un bpm entre $90$ y $120$, que tiene se
 
 Representaremos los datos a partir de un boxplot por cada artista para ver como se distribuye los cuartiles en función de la variable "streams".
 
-
 ```{r bocplot_bpm(top5), fig.width= 10}
 
 spotify_top5 %>% 
@@ -799,10 +788,10 @@ spotify_top5 %>%
 
 
 ```
-A partir de estos gráficos no podemos ver si hay la elección del bpm influye en el número de reproducciones, ya que cada tempo se comporta de distinta manera para cada artista, por ejemplo el artista Harry Styles, las canciones con más reproducciones parecen ser aquellas con un ritmo lento, en cambio con el artista The Weeknd, el ritmo rápido presenta un mayor rango en la variable reproducciones y dos valores atípicos muy diferenciados. 
+
+A partir de estos gráficos no podemos ver si hay la elección del bpm influye en el número de reproducciones, ya que cada tempo se comporta de distinta manera para cada artista, por ejemplo el artista Harry Styles, las canciones con más reproducciones parecen ser aquellas con un ritmo lento, en cambio con el artista The Weeknd, el ritmo rápido presenta un mayor rango en la variable reproducciones y dos valores atípicos muy diferenciados.
 
 Veamos si consideramos aquellas canciones donde la variable "bpm" tiene un valor entre $90$ y $120$:
-
 
 ```{r boxplot_bpm_90_120(top5), fig.width=10}
 
@@ -826,7 +815,6 @@ spotify_top5 %>%
 
 Tenemos que si restringimos la variables "bpm" entre los valores $90$ y $120$, la distribución de los puntos se mantienen en el mismo rango de valores independientemente del artista.
 
-
 ## Propiedades de las canciones
 
 Para comparar estos datos hemos construido un gráfico radar, donde el mínimo es $0%$ y el máximo $100%$. Los valores considerados en cada variable han sido las medias correspondientes a cada artista.
@@ -846,7 +834,7 @@ spotify_top5_perc = spotify_top5 %>%
 
 # Cambio de los nombres
 spotify_top5_perc = spotify_top5_perc %>% 
-  rename(., dance = `danceability_%`,
+  dplyr::rename(., dance = `danceability_%`,
          valence = `valence_%`,
          energy = `energy_%`,
          acoustic = `acousticness_%`,
@@ -905,17 +893,17 @@ Por otro lado se puede intuir que cierto aumento de una variable puede hacer ten
 ```{r correlacion, warning = FALSE}
 
 spotify_top5 %>%
+  select(contains("%")) %>%
   
-  rename(dance = `danceability_%`,
+  dplyr::rename(dance = `danceability_%`,
          valence = `valence_%`,
          energy = `energy_%`,
          acoustic = `acousticness_%`,
          instrumental = `instrumentalness_%`,
          live = `liveness_%`,
-         speech = `speechiness_%`,
-         artist = `artist(s)_name`) %>% 
+         speech = `speechiness_%`) %>% 
   
-  select(14:20) %>%
+
   na.omit(.) %>%
   cor(.) %>% 
   
@@ -937,18 +925,11 @@ Otra variable que destaca es precisamente el acústico: en esta muestra se ha vi
 
 Entre las variables que no han mostrado tener influencia son la cantidad de palabras y la presencia de elementos de actuación en directo.
 
-
-
 ## 6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
-
-
-
-
 
 ## 7. Estudio de las canciones según la época y características.
 
 Para hacer un análisis de las canciones más famosas en los intervalos 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023, primero añadiremos una nueva variable que representará en que época pertenece la canción:
-
 
 Empecemos con el número de playlists de cada plataforma, a continuación mostraremos un boxplot por cada época:
 
@@ -1022,7 +1003,6 @@ ggboxplot(spotify2, x = "epoca" ,y = "in_deezer_playlists",
 
 En la plataforma Deezer, destacan las canciones de los años $2000-2015$, que presentan un mayor rango en cuanto a número de listas. Por otro lado, en las canciones de los años $1930-1999$ y $2016-2021$ contienen valores atípicos, especialmente los años $1930-1999$ donde hay una canción que está en más de $10000$ listas de Deezer.
 
-
 Estudiemos ahora cuáles son las características de las canciones por épocas. De la misma manera que antes, haremos un gráfico radar donde agruparemos por épocas y en cada variable consideraremos el valor medio correspondiente. Así, obtenemos el siguiente gráfico:
 
 ```{r ggradar_epocas, fig.pos="center", warning = FALSE}
@@ -1040,7 +1020,7 @@ spotify_epoca_perc = spotify2 %>%
 
 # Cambio de los nombres
 spotify_epoca_perc = spotify_epoca_perc %>% 
-  rename(dance = `danceability_%`,
+  dplyr::rename(dance = `danceability_%`,
          valence = `valence_%`,
          energy = `energy_%`,
          acoustic = `acousticness_%`,
@@ -1102,7 +1082,7 @@ par(mfrow = c(2,2))
 
 # Cambio de los nombres de las variables
 spotify_epoca = spotify2 %>% 
-  rename(dance = `danceability_%`,
+  dplyr::rename(dance = `danceability_%`,
          valence = `valence_%`,
          energy = `energy_%`,
          acoustic = `acousticness_%`,
@@ -1111,7 +1091,7 @@ spotify_epoca = spotify2 %>%
          speech = `speechiness_%`)
 
 
-corplot_ep1 = spotify2 %>%
+corplot_ep1 = spotify_epoca %>%
   filter(epoca == "Epoca_1") %>%
   select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
   na.omit() %>% 
@@ -1119,7 +1099,7 @@ corplot_ep1 = spotify2 %>%
   corrplot()
 
 
-corplot_ep2 = spotify2 %>%
+corplot_ep2 = spotify_epoca %>%
   filter(epoca == "Epoca_2") %>%
   select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
   na.omit() %>% 
@@ -1128,7 +1108,7 @@ corplot_ep2 = spotify2 %>%
 
 
 
-corplot_ep3 = spotify2 %>%
+corplot_ep3 = spotify_epoca %>%
   filter(epoca == "Epoca_3") %>%
   select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
   na.omit() %>% 
@@ -1137,7 +1117,7 @@ corplot_ep3 = spotify2 %>%
 
 
 
-corplot_ep4 = spotify2 %>%
+corplot_ep4 = spotify_epoca %>%
   filter(epoca == "Epoca_4") %>%
   select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
   na.omit() %>% 
@@ -1183,21 +1163,9 @@ spotify2 %>%
 
 Debido a la gran diferencia de muestras por cada época, no podemos obtener mucha información de los datos. Un aspecto que podemos ver es que ninguna canción de las más reproducidas en Spotify está en $C$ (Do).
 
-
-
-
 ## Vector de medias, covarianzas y contrastes generales
 
-
-
-
-
-
-
 ## Conclusión
-
-
-
 
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
 
@@ -1299,7 +1267,7 @@ PieChart(collaboration, data = spotify2,
 
 ```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
 spotify2 %>%
-  select(streams, 11:13) %>%
+  select(streams, contains("%")) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
