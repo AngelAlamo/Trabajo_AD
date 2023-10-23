@@ -35,15 +35,17 @@ Respecto al estudio, estará enfocado en determinar cuáles son las característ
 
 ```{r librerias, include = FALSE}
 library(tidyverse)
+library(ggplot2)
 library(patchwork)
 library(ggcorrplot)
 library(psych)
 library(patchwork)
 library(MVA)
 library(lessR)
+library(GGally)
 ```
 
-# Dataset
+## Dataset
 
 Una vez explicado el objetivo, presentamos el Dataset, mostramos un pequeño resumen del conjunto de datos, además de nuestras modificaciones respecto al tipo de variable y algunas variables nuevas:
 
@@ -51,31 +53,18 @@ Una vez explicado el objetivo, presentamos el Dataset, mostramos un pequeño res
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
 # Cambiamos el tipo de los valores
-
 spotify2 <- spotify %>% 
   mutate(streams = as.numeric(streams), 
          released_year = as.ordered(released_year),
          released_month = as.ordered(released_month),
          released_day = as.ordered(released_day)) %>%
-         #artist_count = as.ordered(artist_count)
   mutate(across(where(is.character), as.factor)) %>% # chr a factor
-
-
-  # Creamos y añadimos la variable estación de lanzamiento y la posicionamos antes de mes de lanzamiento
-  mutate("released_season" = case_when(
-      released_month %in% c(12, 1, 2) ~ "winter",
-      released_month %in% 3:5 ~ "spring",
-      released_month %in% 6:8 ~ "summer",
-      released_month %in% 9:11 ~ "autumn",
-      NA ~ NA)) %>% 
   
-  
+  # Creamos la variable colaboración
   mutate("collaboration" = case_when(
     artist_count == 1 ~ "solo",
     artist_count %in% 2:10 ~ "collaboration", 
     NA ~ NA)) %>%
-  
-  
   
   # Creamos y añadimos la variable reproducciones por artista y la posicionamos antes de el dia de lanzamiento
   group_by(`artist(s)_name`) %>%
@@ -83,6 +72,14 @@ spotify2 <- spotify %>%
   mutate("artist_streams" = sum(streams)) %>%
   ungroup() %>%
   #relocate(songs_per_artist, .before = released_year )
+  
+  # Añadimos la variable estación de lanzamiento
+  mutate("released_season" = case_when(
+    released_month %in% c(12, 1, 2) ~ "winter",
+    released_month %in% 3:5 ~ "spring",
+    released_month %in% 6:8 ~ "summer",
+    released_month %in% 9:11 ~ "autumn",
+    NA ~ NA)) %>% 
 
   # Eliminamos ciertas variables
   select(!contains("charts")) %>% 
@@ -92,12 +89,16 @@ spotify2 <- spotify %>%
   relocate(released_day, .before = released_year) %>% 
   relocate(released_month, .before = released_year) %>% 
   relocate(`artist(s)_name`, .before = track_name) %>%
-  relocate(released_season, .before = released_month) %>%
+  relocate(released_season, .before = released_year) %>%
   relocate(artist_streams, .before = released_day) %>%
   relocate(collaboration, .before = streams)
 
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
 
-
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
 
 spotify2 %>% 
   glimpse
@@ -107,7 +108,7 @@ spotify2 %>%
 
 Realicemos una descripción de cada variable:
 
--   \*artist(s)\_name\*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
+-   *artist(s)_name*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
 
 ```{r head artist name}
 head(spotify2$`artist(s)_name`,5)
@@ -249,14 +250,12 @@ Una vez vistos el pequeño resumen del dataset y las descripciones de cada varia
 
 
 
-# 1. Analisis de las reproducciones de la canción según la estación del año.
+## 1. Analisis de las reproducciones de la canción según la estación del año.
 
+Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos según la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
 
-Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos por la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
-
-```{r streams segun estacion(1), fig.height=5, fig.width=8}
-
-# Añadimos la variable estación de lanzamiento y la posicionamos antes de mes de lanzamiento
+```{r añadir variable estacion, fig.height=5, fig.width=8}
+# Añadimos la variable estación de lanzamiento y la posicionamos depués de mes de lanzamiento
 spotify2 <- spotify2 %>%
   mutate("released_season" = case_when(
     released_month %in% c(12, 1, 2) ~ "winter",
@@ -264,78 +263,234 @@ spotify2 <- spotify2 %>%
     released_month %in% 6:8 ~ "summer",
     released_month %in% 9:11 ~ "autumn",
     NA ~ NA)) %>% 
-  relocate(released_season, .before = released_month)
+  relocate(released_season, .before = released_year)
 
-colores_clase = c("brown", "green", "yellow", "blue")
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
 
-p_1 = spotify2 %>% 
-  drop_na(released_season, streams) %>% 
-  group_by(released_season) %>% 
-  ggplot() + 
-  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
-  stat_summary(aes(x = released_season, y = streams), fun = mean, geom = "point", shape = 19, 
-               size = 1, color = "black") +
-  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify") +
-  theme_bw() + 
-  guides(fill = guide_legend(title = "Estaciones del año")) +
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold")) + 
-  scale_color_manual(values = colores_clase)
-
-p_1
-
-
-#theme(axis.text = element_text(angle = ...))
-
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
 ```
 
-```{r  streams segun estacion(2), fig.width = 10, warning = FALSE}
-colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
-
-p_2 = spotify2 %>%
-  ggplot() +
-  geom_point(aes(x = released_day, y = streams, color = released_month), na.rm = TRUE) +
-  facet_grid(.~released_season) +
-  labs(x = "Día del més", y = "Streams") +
-  guides(fill = guide_legend(title = "Season")) +
-  theme_bw() +
-  theme(axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-  #scale_color_manual(values = colores_degradados)
-
-p_2
-
-```
-
-```{r}
-
-# Boxplots por mes agrupados por estación
+```{r streams segun estacion, fig.height=5, fig.width=8}
+colores_clase = c("#83CC3A", "#EDED2A", "#B66F01", "#A0EAF1")
 
 spotify2 %>% 
   drop_na(released_season, streams) %>% 
   group_by(released_season) %>% 
   ggplot() + 
-  geom_boxplot(aes(x = released_season, y = streams, color = released_month)) +
-  stat_summary(aes(x = released_season, y = streams), fun = mean, geom = "point", shape = 19, 
-               size = 1, color = "black") +
-  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify") +
+  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
+  stat_summary(aes(x = released_season, y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Estaciones del año") +
   theme_bw() + 
-  guides(fill = guide_legend(title = "Estaciones del año")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold")) + 
+  scale_color_manual(values = colores_clase)
+```
+
+Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen únicamente de la estación del año en que se lancen.
+
+Sin embargo, podemos ir un paso más allá y mirar qué pasa si agrupamos las canciones según el mes de lanzamiento.
+
+
+
+```{r streams segun mes, fig.height=5, fig.width=10}
+colores_clase = c(rep("#A0EAF1", 2), rep("#83CC3A", 3), rep("#EDED2A", 3),
+                  rep("#B66F01", 3), "#A0EAF1")
+
+meses <- c("January", "February", "March", "April", "May", "June", "July", "August",
+           "September", "October", "November", "December")
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = factor(released_month, levels = 1:12, labels = meses),
+                   y = streams, color = released_month)) +
+  stat_summary(aes(x = factor(released_month, levels = 1:12, labels = meses), 
+                   y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Mes de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Meses del año") +
+  theme_bw() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.position = "none") + 
+  scale_color_manual(values = colores_clase)
+```
+
+En este caso, podemos ver en los meses enero y septiembre que el extremo superior del rango intercuartílico es mayor a los otros meses así como el extremo superior del bigote. Así que podría ser favorable para tener una canción exitosa lanzarla en uno de estos dos meses.
+
+
+## 2. Características comunes de las canciones.
+
+Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas de 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
+
+```{r correlación características, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  select(streams,bpm, 17:23) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+```
+
+Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`
+
+```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
+g_1 = spotify2 %>%
+  ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
+  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
+
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
+  theme_bw()
+
+#+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+
+`r # diferenciar entre mode major o minor??`
+
+```{r gráfico correl energia y acustica(2), fig.width = 10}
+
+a1 <-spotify2 %>%
+  select(`energy_%`,`acousticness_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g_11 = bvbox(a1,xlab = "energia", 
+           ylab = "acustica",
+      pch = 19, cex = 1.25, ,col = c("red", "blue")[as.integer(spotify2$mode)])
+g_1 + g_11
+```
+
+```{r gráfico correl bailable y positividad, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
+  geom_point(size = 2,  na.rm = TRUE) + 
+  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
+  theme_bw() #+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+
+```{r gráfico correl bailable y positividad(2), fig.width = 10, fig.height = 6}
+a1 <-spotify2 %>%
+  select(`danceability_%`,`valence_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g<- bvbox(a1,xlab = "bailable", 
+           ylab = "positividad",
+      pch = 19, cex = 1.25, col = "red")
+
+```
+
+Así, vemos que cuando una canción es mas energica, menos nivel acustico presenta, mientras que cuanto más positiva es la canción, más buena es para bailar.
+
+Como los resultados generales del estudio de la correlación no nos es muy satisfactorio, vamos a reducir el tamaño de las canciones a las 100 más escuchadas y volveremos a estudiar sus características.
+
+```{r, fig.width = 10, fig.height = 10}
+#a<-spotify2 %>%
+ # select(bpm,mode, 18:24) %>%
+  #na.omit(.)
+#library(GGally)
+#ggpairs(a)
+```
+
+### Top 100 canciones y sus caracteristicas:
+
+Empecemos identificando cuales son esas canciones más escuchadas asi como los artistas con mas reproducciones.
+
+Veamos cuales son las 10 canciones mas escuchadas:
+
+```{r tabla 10 mas esuchadas}
+
+a10 <- spotify2 %>%
+  arrange(desc(streams)) %>%
+  slice_head( n = 10 )
+head(a10)
+```
+
+```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
+
+colores_degradados2 <- rainbow(length(unique(a10$`artist(s)_name`)),start = .7, end = 1)
+a10  %>%
+  ggplot() + 
+  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = `artist(s)_name`)) +
+  scale_fill_manual(values = colores_degradados2,breaks = a10$`artist(s)_name`) +
+  
+  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  theme_bw() + 
+
+  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+
+```{r tabla top 10 cantantes}
+
+
+b10 <- spotify2 %>%
+  arrange(desc(artist_streams)) %>%
+  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
+  slice_head( n = 10 )
+head(b10)
+```
+
+```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
+
+colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
+
+
+
+
+b10  %>%
+  
+  ggplot() + 
+  geom_col(aes(x = reorder(`artist(s)_name`, desc(artist_streams)) , y = artist_streams, fill = `artist(s)_name`)) +
+
+  scale_fill_manual(values = colores_degradados3,breaks = b10$`artist(s)_name`) +
+  
+  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
+  theme_bw() + 
+  #guides(fill = guide_legend(title = "Artista")) +
   theme(axis.text = element_text(face = "bold"),
         axis.title = element_text(face = "bold"),
         legend.title = element_text(size = 10, face = "bold"))
+
+
+
 ```
 
+Volvemos a hacer un estudio de las correlaciones entre las distintas caracteristicas de las canciones como el hecho anteriormente pero ahora con las 100 canciones más escuchadas:
 
+```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
 
-# 2. Características comunes entre las 100 canciones más reproducidas.
+a100 <- spotify2 %>%
+  slice_max(streams, n = 100)
 
+a100 %>%
+  select(streams,bpm, 17:23) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
 
+```
 
-
-
+Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
 
 
 # 3. Artistas con más canciones en listas de Spotify.
@@ -346,42 +501,42 @@ spotify2 %>%
 
 
 
-# 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+## 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
 
 
 
 
 
 
-# 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+## 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
 
 
 
 
 
-# 6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
+## 6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
 
 
 
 
 
 
-# 7. Estudio de las canciones según el año y características.
+## 7. Estudio de las canciones según el año y características.
 
 
 
 
 
 
-# Vector de medias, covarianzas y contrastes generales
+## Vector de medias, covarianzas y contrastes generales
 
 
 
 
 
 
-# Conclusión
+## Conclusión
 
 
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
@@ -483,177 +638,7 @@ PieChart(collaboration, data = spotify2,
 
 # Estudio caracteristicas de las canciones:
 
-Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas de 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
 
-```{r correlación características, fig.width = 10, fig.height = 6}
-spotify2 %>%
-  select(streams,bpm, 17:23) %>%
-  na.omit(.) %>% 
-  cor(.) %>% 
-  corPlot(.,
-       cex = 0.5
-       )
-```
-
-Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`
-
-```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
-g_1 = spotify2 %>%
-  ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
-  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
-
-  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
-  theme_bw()
-
-#+ 
-  #scale_y_continuous(limits = c(0,600))
-```
-
-`r # diferenciar entre mode major o minor??`
-
-```{r gráfico correl energia y acustica(2), fig.width = 10}
-
-a1 <-spotify2 %>%
-  select(`energy_%`,`acousticness_%`)%>%
-  na.omit %>% as.matrix()
-
-
-
-g_11 = bvbox(a1,xlab = "energia", 
-           ylab = "acustica",
-      pch = 19, cex = 1.25, ,col = c("red", "blue")[as.integer(spotify2$mode)])
-g_1 + g_11
-```
-
-```{r gráfico correl bailable y positividad, fig.width = 10, fig.height = 6}
-spotify2 %>%
-  ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
-  geom_point(size = 2,  na.rm = TRUE) + 
-  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
-  theme_bw() #+ 
-  #scale_y_continuous(limits = c(0,600))
-```
-
-```{r gráfico correl bailable y positividad(2), fig.width = 10, fig.height = 6}
-a1 <-spotify2 %>%
-  select(`danceability_%`,`valence_%`)%>%
-  na.omit %>% as.matrix()
-
-
-
-g<- bvbox(a1,xlab = "bailable", 
-           ylab = "positividad",
-      pch = 19, cex = 1.25, col = "red")
-
-```
-
-Así, vemos que cuando una canción es mas energica, menos nivel acustico presenta, mientras que cuanto más positiva es la canción, más buena es para bailar.
-
-Como los resultados generales del estudio de la correlación no nos es muy satisfactorio, vamos a reducir el tamaño de las canciones a las 100 más escuchadas y volveremos a estudiar sus características.
-
-```{r, fig.width = 10, fig.height = 10}
-#a<-spotify2 %>%
- # select(bpm,mode, 18:24) %>%
-  #na.omit(.)
-#library(GGally)
-#ggpairs(a)
-```
-
-#Top 100 canciones y sus caracteristicas:
-
-Empecemos identificando cuales son esas canciones más escuchadas asi como los artistas con mas reproducciones.
-
-Veamos cuales son las 10 canciones mas escuchadas:
-
-```{r tabla 10 mas esuchadas}
-
-a10 <- spotify2 %>%
-  arrange(desc(streams)) %>%
-  slice_head( n = 10 )
-head(a10)
-```
-
-```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
-
-colores_degradados2 <- rainbow(length(unique(a10$`artist(s)_name`)),start = .7, end = 1)
-a10  %>%
-  ggplot() + 
-  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = `artist(s)_name`)) +
-  scale_fill_manual(values = colores_degradados2,breaks = a10$`artist(s)_name`) +
-  
-  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
-  theme_bw() + 
-
-  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-
-
-```
-
-```{r tabla top 10 cantantes}
-
-
-b10 <- spotify2 %>%
-  arrange(desc(artist_streams)) %>%
-  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
-  slice_head( n = 10 )
-head(b10)
-```
-
-```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
-
-colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
-
-
-
-
-b10  %>%
-  
-  ggplot() + 
-  geom_col(aes(x = reorder(`artist(s)_name`, desc(artist_streams)) , y = artist_streams, fill = `artist(s)_name`)) +
-
-  scale_fill_manual(values = colores_degradados3,breaks = b10$`artist(s)_name`) +
-  
-  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
-  theme_bw() + 
-  #guides(fill = guide_legend(title = "Artista")) +
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-
-
-```
-
-Volvemos a hacer un estudio de las correlaciones entre las distintas caracteristicas de las canciones como el hecho anteriormente pero ahora con las 100 canciones más escuchadas:
-
-```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
-
-a100 <- spotify2 %>%
-  slice_max(streams, n = 100)
-
-a100 %>%
-  select(streams,bpm, 17:23) %>%
-  na.omit(.) %>% 
-  cor(.) %>% 
-  corPlot(.,
-       cex = 0.5
-       )
-
-```
-
-Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
-
-```{r grafico colaboraciones}
-
-PieChart(collaboration, data = spotify2,
-         fill = c("#BF3EFF","#87CEFA"),
-         main = NULL)
-
-
-```
 
 # Estudio por plataformas:
 
