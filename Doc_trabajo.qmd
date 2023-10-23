@@ -231,7 +231,7 @@ summary(spotify2$bpm)
 
 -   *rango_bpm*: variable cualitativa que muestra en qué rango pertenece el bpm de la canción según nuestros grupos.
 
-```{r summary bpm}
+```{r summary rango bpm}
 summary(spotify2$rango_bpm)
 ```
 
@@ -368,11 +368,11 @@ En este caso, podemos ver en los meses enero y septiembre que el extremo superio
 
 ## 2. Características comunes de las canciones.
 
-Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas de 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
+Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas en 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
 
 ```{r correlación características, fig.width = 10, fig.height = 6}
 spotify2 %>%
-  select(streams,bpm, 17:23) %>%
+  select(streams,bpm, 20:26) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
@@ -380,10 +380,20 @@ spotify2 %>%
        )
 ```
 
-Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`
+Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de ésta, por lo que no podemos ver una relación directa entre algunas características numéricas de las canciones con el número de reproducciones
+
+Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`, `danceability_%`\~`valence_%` y `valence_%`\~`energy_%`
+
+```{r fig.height=20, fig.width=20}
+spotify2 %>% 
+  select(3:6, 18:22) %>% 
+  ggpairs
+
+
+```
 
 ```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
-g_1 = spotify2 %>%
+g_1 <- spotify2 %>%
   ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
   geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
 
@@ -520,7 +530,7 @@ a100 <- spotify2 %>%
   slice_max(streams, n = 100)
 
 a100 %>%
-  select(streams,bpm, 17:23) %>%
+  select(streams,bpm, 20:26) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
