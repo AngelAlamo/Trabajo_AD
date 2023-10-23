@@ -1,0 +1,350 @@
+---
+title: "Análisis multivariante de las 1000 canciones más escuchadas en Spotify"
+author: "by Óscar Vanrell, Angel Alamo y Juanjo Doblas"
+format: revealjs
+editor: visual
+embed-resources: true
+
+---
+```{r librerias, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(ggcorrplot)
+library(psych)
+library(patchwork)
+library(MVA)
+library(lessR)
+library(GGally)
+```
+## 
+
+Estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle  [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/).
+
+Estará enfocado en determinar cuáles son las **características comunes entre las canciones más reproducidas**, para ello, intentaremos obtener información de las canciones del dataset a partir de los siguientes puntos:
+
+1. Características comunes entre las 100 canciones más reproducidas.
+
+2. Analisis de las reproducciones de la canción según la estación del año.
+
+3. Artistas con más canciones en listas de Spotify.
+
+4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+
+5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+
+6. ¿Son igual de famosas las canciones en distintas plataformas?. 
+
+7. Estudio de las canciones según el año y características.
+
+## Modificaciones del dataset
+
+```{r dataset,echo=TRUE, warning = FALSE}
+spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
+
+# Cambiamos el tipo de los valores
+spotify2 <- spotify %>% 
+  mutate(streams = as.numeric(streams), 
+         released_year = as.ordered(released_year),
+         released_month = as.ordered(released_month),
+         released_day = as.ordered(released_day)) %>%
+  mutate(across(where(is.character), as.factor)) %>% # chr a factor
+  
+  # Creamos la variable colaboración
+  mutate("collaboration" = case_when(
+    artist_count == 1 ~ "solo",
+    artist_count %in% 2:10 ~ "collaboration", 
+    NA ~ NA)) %>%
+  
+  # Creamos y añadimos la variable reproducciones por artista y la posicionamos antes de el dia de lanzamiento
+  group_by(`artist(s)_name`) %>%
+  #mutate("songs_per_artist" = n()) %>% 
+  mutate("artist_streams" = sum(streams)) %>%
+  ungroup() %>%
+  #relocate(songs_per_artist, .before = released_year )
+  
+  # Añadimos la variable estación de lanzamiento
+  mutate("released_season" = case_when(
+    released_month %in% c(12, 1, 2) ~ "winter",
+    released_month %in% 3:5 ~ "spring",
+    released_month %in% 6:8 ~ "summer",
+    released_month %in% 9:11 ~ "autumn",
+    NA ~ NA)) %>% 
+
+  # Eliminamos ciertas variables
+  select(!contains("charts")) %>% 
+  
+  # Recolocamos las variables
+  relocate(streams, .after = artist_count) %>% 
+  relocate(released_day, .before = released_year) %>% 
+  relocate(released_month, .before = released_year) %>% 
+  relocate(`artist(s)_name`, .before = track_name) %>%
+  relocate(released_season, .before = released_year) %>%
+  relocate(artist_streams, .before = released_day) %>%
+  relocate(collaboration, .before = streams)
+
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
+
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
+
+
+```
+
+## Variables
+
+
+```{r}
+spotify2 %>% 
+  glimpse
+```
+
+## Vector de medias
+
+
+## Características canciones
+
+```{r correlación características, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  select(streams,bpm, 17:23) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+```
+
+---
+
+:::{.panel-tabset}
+
+## Gráficos Correl entre variables
+
+```{r gráfico correl energia y acustica, fig.width = 14, fig.height = 6}
+g_1 = spotify2 %>%
+  ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
+  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
+
+  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
+  theme_bw()
+
+g_111 = spotify2 %>%
+  ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
+  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
+  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
+  theme_bw()
+
+g_1 + g_111
+
+#+ 
+  #scale_y_continuous(limits = c(0,600))
+```
+## Elipses
+```{r gráfico correl energia y acustica(2), fig.width = 14, fig.height = 6}
+
+a1 <-spotify2 %>%
+  select(`energy_%`,`acousticness_%`)%>%
+  na.omit %>% as.matrix()
+
+par(mfrow = c(1, 2))
+
+
+g_11 <- bvbox(a1,xlab = "energia", 
+           ylab = "acustica",
+      pch = 19, cex = 0.75 ,col = c("red", "blue")[as.integer(spotify2$mode)])
+
+
+a2 <-spotify2 %>%
+  select(`danceability_%`,`valence_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g_1111<- bvbox(a2,xlab = "bailable", 
+           ylab = "positividad",
+      pch = 19, cex = 0.75, col = c("red", "blue")[as.integer(spotify2$mode)])
+
+
+par(mfrow = c(1, 1))
+```
+:::
+
+
+```{r tabla 10 mas esuchadas}
+
+a10 <- spotify2 %>%
+  arrange(desc(streams)) %>%
+  slice_head( n = 10 )
+head(a10)
+```
+
+```{r tabla top 10 cantantes}
+
+
+b10 <- spotify2 %>%
+  arrange(desc(artist_streams)) %>%
+  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
+  slice_head( n = 10 )
+head(b10)
+```
+
+---
+:::{.panel-tabset}
+## Top canciones
+
+```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
+
+colores_degradados2 <- rainbow(length(unique(a10$`artist(s)_name`)),start = .7, end = 1)
+a10  %>%
+  ggplot() + 
+  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = `artist(s)_name`)) +
+  scale_fill_manual(values = colores_degradados2,breaks = a10$`artist(s)_name`) +
+  
+  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  theme_bw() + 
+
+  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+
+## Top artistas
+
+```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
+
+colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
+
+
+
+b10  %>%
+  
+  ggplot() + 
+  geom_col(aes(x = reorder(`artist(s)_name`, desc(artist_streams)) , y = artist_streams, fill = `artist(s)_name`)) +
+
+  scale_fill_manual(values = colores_degradados3,breaks = b10$`artist(s)_name`) +
+  
+  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
+  theme_bw() + 
+  #guides(fill = guide_legend(title = "Artista")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+:::
+
+:::{.panel-tabset}
+
+## Características 100 canciones
+
+Correlaciones de las características de las 100 canciones más escuchadas en Spotify.
+```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
+
+a100 <- spotify2 %>%
+  slice_max(streams, n = 100)
+
+a100 %>%
+  select(streams,bpm, 17:23) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+
+```
+
+## Todas las canciones
+
+```{r correlación características2, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  select(streams,bpm, 17:23) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 0.5
+       )
+```
+
+:::
+
+
+## Popularidad por estación del año
+```{r streams segun estacion(1), fig.height=5, fig.width=8}
+
+
+
+colores_clase = c("brown", "green", "yellow", "blue")
+
+p_1 = spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
+  stat_summary(aes(x = released_season, y = streams), fun = mean, geom = "point", shape = 19, 
+               size = 1, color = "black") +
+  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify") +
+  theme_bw() + 
+  guides(fill = guide_legend(title = "Estaciones del año")) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold")) + 
+  scale_color_manual(values = colores_clase)
+  
+```
+
+```{r  streams segun estacion(2), fig.width = 10}
+
+colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
+
+p_2 = spotify2 %>%
+  ggplot() +
+  geom_point(aes(x = released_day, y = streams, color = released_month), na.rm = TRUE) +
+  facet_grid(.~released_season) +
+  labs(x = "Día del més", y = "Streams") +
+  guides(fill = guide_legend(title = "Season")) +
+  theme_bw() +
+  theme(axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+  #scale_color_manual(values = colores_degradados)
+
+p_1 +
+p_2
+
+```
+
+---
+
+:::{.panel-tabset}
+## Plataformas colaboracion
+
+```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
+a <- spotify2 %>%
+  filter(collaboration == "collaboration") %>%
+  select(collaboration,streams, 11:13) %>%
+  na.omit(.) 
+ggpairs(a)
+
+
+```
+
+
+## Plataformas solo
+```{r correlacion por plataformas solo, fig.width = 15, fig.height = 8}
+a <- spotify2 %>%
+  filter(collaboration == "solo") %>%
+  select(collaboration,streams, 11:13) %>%
+  na.omit(.) 
+ggpairs(a)
+
+
+```
+:::
+## Conclusión
