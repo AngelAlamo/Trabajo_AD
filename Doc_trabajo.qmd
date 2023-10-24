@@ -98,7 +98,7 @@ spotify2 <- spotify %>%
          "instrumental%" = `instrumentalness_%`,
          "live%" = `liveness_%`,
          "speech%" = `speechiness_%`,
-         "artist%" = `artist(s)_name`) %>% 
+         artist = `artist(s)_name`) %>% 
   
   
   # Creamos la variable epoca
@@ -130,7 +130,7 @@ spotify2 <- spotify %>%
   relocate(streams, .after = artist_count) %>% 
   relocate(released_day, .before = released_year) %>% 
   relocate(released_month, .before = released_year) %>% 
-  relocate("artist%", .before = track_name) %>%
+  relocate(artist, .before = track_name) %>%
   relocate(released_season, .before = released_year) %>%
   relocate(artist_streams, .before = released_day) %>%
   relocate(collaboration, .before = streams)
@@ -402,56 +402,7 @@ Aún asi veamos los siguientes gráficos de los pares de variables más correlac
 #Tarda mucho xd
 ```
 
-```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
-g_1 <- spotify2 %>%
-  ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
-  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
 
-  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
-  theme_bw()
-
-#+ 
-  #scale_y_continuous(limits = c(0,600))
-```
-
-`r # diferenciar entre mode major o minor??`
-
-```{r gráfico correl energia y acustica(2), fig.width = 10}
-
-a1 <-spotify2 %>%
-  select("energy%","acoustic%")%>%
-  na.omit %>% as.matrix()
-
-
-
-g_11 = bvbox(a1,xlab = "energia", 
-           ylab = "acustica",
-      pch = 19, cex = 1.25, ,col = c("red", "blue")[as.integer(spotify2$mode)])
-
-g_1 + g_11
-```
-
-```{r gráfico correl bailable y positividad, fig.width = 10, fig.height = 6}
-spotify2 %>%
-  ggplot(aes(x=`danceability_%`,y=`valence_%`)) +
-  geom_point(size = 2,  na.rm = TRUE) + 
-  geom_smooth(method = "lm",col="pink",lwd=1, alpha = 0.2) + 
-  theme_bw() #+ 
-  #scale_y_continuous(limits = c(0,600))
-```
-
-```{r gráfico correl bailable y positividad(2), fig.width = 10, fig.height = 6}
-a1 <-spotify2 %>%
-  select(`danceability_%`,`valence_%`)%>%
-  na.omit %>% as.matrix()
-
-
-
-g<- bvbox(a1,xlab = "bailable", 
-           ylab = "positividad",
-      pch = 19, cex = 1.25, col = "red")
-
-```
 
 Así, vemos que cuando una canción es mas energica, menos nivel acustico presenta, mientras que cuanto más positiva es la canción, más buena es para bailar.
 
@@ -481,11 +432,11 @@ head(a10)
 
 ```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
 
-colores_degradados2 <- rainbow(length(unique(a10$`artist(s)_name`)),start = .7, end = 1)
+colores_degradados2 <- rainbow(length(unique(a10$artist)),start = .7, end = 1)
 a10  %>%
   ggplot() + 
-  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = `artist(s)_name`)) +
-  scale_fill_manual(values = colores_degradados2,breaks = a10$`artist(s)_name`) +
+  geom_col(aes(x = reorder(track_name, desc(streams)) , y = streams, fill = a10$artist)) +
+  scale_fill_manual(values = colores_degradados2, breaks = a10$artist) +
   
   labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
   theme_bw() + 
@@ -503,7 +454,7 @@ a10  %>%
 
 b10 <- spotify2 %>%
   arrange(desc(artist_streams)) %>%
-  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
+  distinct(artist, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
   slice_head( n = 10 )
 head(b10)
 ```
@@ -518,9 +469,9 @@ colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10
 b10  %>%
   
   ggplot() + 
-  geom_col(aes(x = reorder(`artist(s)_name`, desc(artist_streams)) , y = artist_streams, fill = `artist(s)_name`)) +
+  geom_col(aes(x = reorder(artist, desc(artist_streams)) , y = artist_streams, fill = artist)) +
 
-  scale_fill_manual(values = colores_degradados3,breaks = b10$`artist(s)_name`) +
+  scale_fill_manual(values = colores_degradados3,breaks = b10$artist) +
   
   labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
   theme_bw() + 
@@ -564,7 +515,7 @@ Veamos cuáles son los 5 artistas con más canciones en el dataset. Hemos consid
 
 # Dataset Artistas top5 - Num_canciones
 top5 = spotify2 %>% 
-  group_by(`artist(s)_name`) %>% 
+  group_by(artist) %>% 
   summarise(count = n(), .groups = "drop") %>% 
   arrange(desc(count)) %>% 
   slice_head(n = 5)
@@ -578,8 +529,8 @@ Ahora para tratar con los datos que nos interesan, definimos otro tibble que sol
 
 # Dataset completo con solo los artistas top 5
 spotify_top5 = spotify2 %>% 
-  filter(`artist(s)_name` %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
-  arrange(`artist(s)_name`)
+  filter(artist %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
+  arrange(artist)
   
 spotify_top5 %>% 
   glimpse
@@ -600,7 +551,7 @@ spotify_top5 %>%
   drop_na(key, mode) %>% 
   ggplot() +
   geom_bar(aes(x = key, fill = key), alpha = 0.7) +
-  facet_grid(mode~`artist(s)_name`) +
+  facet_grid(mode~artist) +
   
   scale_x_discrete(limits = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B")) +
   scale_y_discrete(limits = 0:7) +
@@ -640,13 +591,13 @@ f = function(x){
 
 #Dataset con Artista ~ Mode - Frecuencia
 Frecuencia = spotify_top5 %>% 
-  group_by(`artist(s)_name`, mode) %>% 
+  group_by(artist, mode) %>% 
   summarise(Frecuencia = n(), .groups = "drop") %>% 
   pull(Frecuencia)
 
 # Dataset Artistas top5
 spotify_top5_artists = spotify_top5 %>% 
-  group_by(`artist(s)_name`) %>% 
+  group_by(artist) %>% 
   summarise()
 
 # Dataset con Artistas top5 - Frecuencia - Modo_dominante
@@ -667,7 +618,7 @@ Vemos que el único artista que ha utilizado más la escala menor es "The Weeknd
 
 spotify_top5 %>% 
   drop_na(key) %>% 
-  group_by(`artist(s)_name`, key) %>% 
+  group_by(artist, key) %>% 
   summarise(Frecuencia = n(), .groups = "drop") %>% 
   pivot_wider(names_from = key,
               values_from = Frecuencia)
@@ -691,7 +642,7 @@ spotify_top5 %>%
   drop_na(key, streams) %>% 
   ggplot(aes(x = key, y = streams, color = mode)) +
   geom_point() +
-  facet_grid(.~`artist(s)_name`) +
+  facet_grid(.~artist) +
   
   labs(x= "Tonalidad de la canción", y= "Streams") +
   guides(fill = guide_legend(title = "Modo")) +
@@ -710,7 +661,7 @@ Pordemos observar que todos los puntos estan concentrados en el rango $[0, 1.5*1
 ```{r media streams(artist)}
 
 spotify_top5 %>% 
-  group_by(`artist(s)_name`) %>% 
+  group_by(artist) %>% 
   summarise(Media_streams = mean(streams))
   
 ```
@@ -720,7 +671,7 @@ Tenemos que Harry Styles y The Weeknd tienen la media de reproducciones (recorde
 ```{r, media streams(mode)}
 
 spotify_top5 %>% 
-  group_by(`artist(s)_name`, mode) %>% 
+  group_by(artist, mode) %>% 
   summarise(Media_streams_modo = mean(streams), .groups = "drop")
 
 ```
@@ -731,7 +682,7 @@ En los artistas Bad Bunny, SZA y Taylor Swift la diferencia es relativamente baj
 
 tabla_media_key = spotify_top5 %>% 
   drop_na(key) %>% 
-  group_by(`artist(s)_name`, key) %>% 
+  group_by(artist, key) %>% 
   summarise(Media_streams_key = mean(streams), .groups = "drop") %>% 
   pivot_wider(names_from = key,
               values_from = Media_streams_key)
@@ -763,8 +714,8 @@ Estudiemos el número de reproducciones de cada artista según el bpm utilizado:
 
 spotify_top5 %>% 
   ggplot() +
-  geom_point(aes(x = bpm, y = streams, color = `artist(s)_name`)) +
-  facet_grid(.~ `artist(s)_name`) +
+  geom_point(aes(x = bpm, y = streams, color = artist)) +
+  facet_grid(.~ artist) +
   theme_bw() +
   
   labs(x= "bpm", y= "Streams") +
@@ -787,10 +738,10 @@ Representaremos los datos a partir de un boxplot por cada artista para ver como 
 
 spotify_top5 %>% 
   ggplot() +
-  geom_boxplot(aes(x = tempo, y = streams, color = `artist(s)_name`), show.legend = FALSE)+
-  facet_grid(.~`artist(s)_name`) +
+  geom_boxplot(aes(x = tempo, y = streams, color = artist), show.legend = FALSE)+
+  facet_grid(.~artist) +
   theme_bw()+
-  geom_jitter(aes(x = tempo, y = streams, color = `artist(s)_name`), alpha = 0.5, 
+  geom_jitter(aes(x = tempo, y = streams, color = artist), alpha = 0.5, 
               show.legend = FALSE, 
               position = position_jitter(width = 0.2, seed = 0)) +
   labs(x = "Tempo", y = "Streams") +
@@ -811,9 +762,9 @@ Veamos si consideramos aquellas canciones donde la variable "bpm" tiene un valor
 spotify_top5 %>% 
   filter(between(bpm, 90, 120)) %>% 
   ggplot() +
-  geom_boxplot(aes(x = `artist(s)_name`, y = streams, color = `artist(s)_name`), show.legend = FALSE)+
+  geom_boxplot(aes(x = artist, y = streams, color = artist), show.legend = FALSE)+
   theme_bw()+
-  geom_jitter(aes(x = `artist(s)_name`, y = streams, color = `artist(s)_name`), alpha = 0.5, 
+  geom_jitter(aes(x = artist, y = streams, color = artist), alpha = 0.5, 
               show.legend = FALSE, 
               position = position_jitter(width = 0.2, seed = 0)) +
   labs(x = "Artista", y = "Streams") +
@@ -836,24 +787,11 @@ Para comparar estos datos hemos construido un gráfico radar, donde el mínimo e
 
 # Consideramos las columnas 'artistas' y las de % ; Agrupamos por artistas y hacemos la media
 spotify_top5_perc = spotify_top5 %>% 
-  select(`artist(s)_name`,contains("%")) %>% 
-  group_by(`artist(s)_name`) %>% 
+  select(artist,contains("%")) %>% 
+  group_by(artist) %>% 
   summarise(
     across(contains("%"), ~ mean(., na.rm = T))
   )
-
-
-
-# Cambio de los nombres
-spotify_top5_perc = spotify_top5_perc %>% 
-  dplyr::rename(., dance = `danceability_%`,
-         valence = `valence_%`,
-         energy = `energy_%`,
-         acoustic = `acousticness_%`,
-         instrumental = `instrumentalness_%`,
-         live = `liveness_%`,
-         speech = `speechiness_%`,
-         artist = `artist(s)_name`)
 
 
 
@@ -906,15 +844,6 @@ Por otro lado se puede intuir que cierto aumento de una variable puede hacer ten
 
 spotify_top5 %>%
   select(contains("%")) %>%
-  
-  dplyr::rename(dance = `danceability_%`,
-         valence = `valence_%`,
-         energy = `energy_%`,
-         acoustic = `acousticness_%`,
-         instrumental = `instrumentalness_%`,
-         live = `liveness_%`,
-         speech = `speechiness_%`) %>% 
-  
 
   na.omit(.) %>%
   cor(.) %>% 
@@ -1029,19 +958,6 @@ spotify_epoca_perc = spotify2 %>%
   )
 
 
-
-# Cambio de los nombres
-spotify_epoca_perc = spotify_epoca_perc %>% 
-  dplyr::rename(dance = `danceability_%`,
-         valence = `valence_%`,
-         energy = `energy_%`,
-         acoustic = `acousticness_%`,
-         instrumental = `instrumentalness_%`,
-         live = `liveness_%`,
-         speech = `speechiness_%`)
-
-
-
 # Gráfico radar
 ggradar(spotify_epoca_perc,
         
@@ -1092,46 +1008,35 @@ Podemos hacer un gráfico de correlaciones por épocas para ver si son las misma
 
 par(mfrow = c(2,2))
 
-# Cambio de los nombres de las variables
-spotify_epoca = spotify2 %>% 
-  dplyr::rename(dance = `danceability_%`,
-         valence = `valence_%`,
-         energy = `energy_%`,
-         acoustic = `acousticness_%`,
-         instrumental = `instrumentalness_%`,
-         live = `liveness_%`,
-         speech = `speechiness_%`)
-
-
-corplot_ep1 = spotify_epoca %>%
+corplot_ep1 = spotify2 %>%
   filter(epoca == "Epoca_1") %>%
-  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>% 
   na.omit() %>% 
   cor() %>% 
   corrplot()
 
 
-corplot_ep2 = spotify_epoca %>%
+corplot_ep2 = spotify2 %>%
   filter(epoca == "Epoca_2") %>%
-  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
   na.omit() %>% 
   cor() %>% 
   corrplot()
 
 
 
-corplot_ep3 = spotify_epoca %>%
+corplot_ep3 = spotify2 %>%
   filter(epoca == "Epoca_3") %>%
-  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
   na.omit() %>% 
   cor() %>% 
   corrplot()
 
 
 
-corplot_ep4 = spotify_epoca %>%
+corplot_ep4 = spotify2 %>%
   filter(epoca == "Epoca_4") %>%
-  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
   na.omit() %>% 
   cor() %>% 
   corrplot()
@@ -1201,7 +1106,7 @@ H_{1}: & \rho_{X,Y}>0
 
 ```{r}
 
-cor.test(spotify2$`energy_%`, spotify2$`danceability_%`, alternative="greater")
+cor.test(spotify2$`energy%`, spotify2$"dance%", alternative="greater")
 
 ```
 
