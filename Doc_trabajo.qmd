@@ -392,33 +392,66 @@ spotify2 %>%
 
 Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de ésta, por lo que no podemos ver una relación directa entre algunas características numéricas de las canciones con el número de reproducciones
 
-Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`, `danceability_%`\~`valence_%` y `valence_%`\~`energy_%`
+Aún así, veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`, `danceability_%`\~`valence_%` y `valence_%`\~`energy_%` según el modo en una matriz de gráficos de dispersión.
 
-```{r fig.height=20, fig.width=20}
-#spotify2 %>% 
-#  select(3:6, 18:22) %>% 
- # ggpairs
+```{r matriz dispersion, fig.height=20, fig.width=20}
+matriz_dispersion <- spotify2 %>% 
+  select(19:23) %>% 
+  ggpairs(aes(color = spotify2$mode, binwidth = 10))
 
-#Tarda mucho xd
+matriz_dispersion
 ```
+Aquí vemos una correlación positiva entre las variables `danceability_%` y `valence_%`, así como entre `energy_%` y `valence_%`. También vemos una correlación negativa entre `energy_%` y `acousticness_%`, que es el par de variables con la correlación más fuerte. También, podemos observar que si nos restringimos a las canciones en modo mayor, presentan una correlación más fuerte.
 
+Así, vemos que cuanto más buena para bailar es una canción, viene asociado con más positividad; también, cuanto más enérgica, viene asociado con más positividad; y cuanto más enérgica, viene asociado con menos nivel acustico.
 
-
-Así, vemos que cuando una canción es mas energica, menos nivel acustico presenta, mientras que cuanto más positiva es la canción, más buena es para bailar.
-
-Como los resultados generales del estudio de la correlación no nos es muy satisfactorio, vamos a reducir el tamaño de las canciones a las 100 más escuchadas y volveremos a estudiar sus características.
-
-```{r, fig.width = 10, fig.height = 10}
-#a<-spotify2 %>%
- # select(bpm,mode, 18:24) %>%
-  #na.omit(.)
-#library(GGally)
-#ggpairs(a)
-```
+Ahora, veamos qué pasa con estas correlaciones si nos restringimos a las 100 canciones más escuchadas.
 
 ### Top 100 canciones y sus caracteristicas:
 
-Empecemos identificando cuales son esas canciones más escuchadas asi como los artistas con mas reproducciones.
+Vamos a crear el subtible con las 100 canciones más reproducidas en Spotify basándonos en la variable *streams*.
+
+```{r top 100 canciones, warning=FALSE}
+top100canciones <- spotify2 %>% 
+  slice_max(streams, n = 100)
+
+top100canciones %>% 
+  glimpse
+```
+
+Una vez obtenido el subtibble, mostremos la matriz de correlación del subtibble junto con la matriz de correlación original.
+
+
+```{r matriz correlacion top100, fig.width=10, fig.height=6}
+spotify2 %>%
+  select(streams,bpm, 20:26) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(., cex = 0.5)
+
+top100canciones %>%
+  select(streams,bpm, 20:26) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(., cex = 0.5)
+```
+
+Seguimos sin ver ninguna correlación fuerte de alguna variable con *streams*. Sin embargo, fijémonos que obtenemos correlaciones más fuertes en general. En particular, estas correlaciones son más fuertes en los pares de variables estudiados anteriormente.
+
+Volvamos a relizar la matriz de gráficos de dispersión de las 100 canciones más escuchadas y vamos a compararla con la matriz original.
+
+```{r matriz dispersion top100, fig.height=20, fig.width=20}
+matriz_dispersion_100 <- top100canciones %>% 
+  select(19:23) %>% 
+  ggpairs(aes(color = top100canciones$mode, bins = 30))
+
+par(mfrow = c(1, 2))
+
+matriz_dispersion
+matriz_dispersion_100
+
+par(mfrow = c(1, 1))
+```
 
 Veamos cuales son las 10 canciones mas escuchadas:
 
