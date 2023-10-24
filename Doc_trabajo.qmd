@@ -312,10 +312,13 @@ a10  %>%
   geom_col(aes(x = reorder(track_name, desc(streams)) , y = streams, fill = a10$artist)) +
   scale_fill_manual(values = colores_degradados2, breaks = a10$artist) +
   
-  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  labs(title = "Top 10 canciones más reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  
+  guides(fill = guide_legend(title = "Artista")) +
+  
   theme_bw() + 
-
-  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
+  
+  theme(axis.text = element_text(face = "bold", angle = 25, vjust = 0.5, hjust = 1),
         axis.title = element_text(face = "bold"),
         legend.title = element_text(size = 10, face = "bold")) +
   theme(plot.title=element_text(size=20, face='bold', color='purple'))
@@ -345,7 +348,7 @@ b10  %>%
 
   scale_fill_manual(values = colores_degradados3,breaks = b10$artist) +
   
-  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
+  labs(title = "Top 10 artistas con más reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
   theme_bw() + 
   theme(axis.text = element_text(face = "bold"),
         axis.title = element_text(face = "bold"),
@@ -379,8 +382,9 @@ spotify2 %>%
   select(where(is.numeric)) %>%
   na.omit(.) %>% 
   cor(.) %>% 
-  corPlot(., cex = 1, xsrt = 30, cex.axis = 1, main = "Correlación Entre Variables Cuantitativas"
-       )
+  corPlot(., cex = 1, xsrt = 30, cex.axis = 1, main = "Correlación Entre Variables Cuantitativas")
+
+
 ```
 
 
@@ -821,7 +825,7 @@ Estudiemos el número de reproducciones de cada artista según el bpm utilizado:
 
 spotify_top5 %>% 
   ggplot() +
-  geom_point(aes(x = bpm, y = streams, color = artist)) +
+  geom_point(aes(x = bpm, y = streams, color = artist), show.legend = FALSE) +
   facet_grid(.~ artist) +
   theme_bw() +
   
@@ -830,9 +834,7 @@ spotify_top5 %>%
   
   theme_bw() +
   theme(axis.text = element_text(size=8),
-        axis.title = element_text(size=12, face = "bold"),
-        legend.title = element_text(size = 15),
-        legend.text = element_text(size = 15)) +
+        axis.title = element_text(size=12, face = "bold")) +
   
   labs(title = "Reproducciones según el bpm por artista",
        subtitle = "Top 5 artistas") +
