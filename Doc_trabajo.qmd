@@ -300,81 +300,22 @@ summary(spotify2$"speech%")
 
 Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a estudiar las secciones consideradas.
 
-## 1. Analisis de las reproducciones de la canción según la estación del año.
+# Vector de medias y matriz de correlación.
 
-Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos según la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
-
-```{r añadir variable estacion, fig.height=5, fig.width=8}
-# Añadimos la variable estación de lanzamiento y la posicionamos depués de mes de lanzamiento
-spotify2 <- spotify2 %>%
-  mutate("released_season" = case_when(
-    released_month %in% c(12, 1, 2) ~ "winter",
-    released_month %in% 3:5 ~ "spring",
-    released_month %in% 6:8 ~ "summer",
-    released_month %in% 9:11 ~ "autumn",
-    NA ~ NA)) %>% 
-  relocate(released_season, .before = released_year)
-
-# Orden personalizado de las estaciones del año
-orden_estaciones <- c("spring", "summer", "autumn", "winter")
-
-# Cambia el orden de las estaciones del año
-spotify2$released_season <- factor(spotify2$released_season,
-                                   levels = orden_estaciones)
+```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 1 , main = "Correlación Entre Variables Cuantitativas"
+       )
 ```
 
-```{r streams segun estacion, fig.height=5, fig.width=8}
-colores_clase = c("#83CC3A", "#EDED2A", "#B66F01", "#A0EAF1")
 
-spotify2 %>% 
-  drop_na(released_season, streams) %>% 
-  group_by(released_season) %>% 
-  ggplot() + 
-  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
-  stat_summary(aes(x = released_season, y = streams),
-               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
-  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify", 
-       color = "Estaciones del año") +
-  theme_bw() + 
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold")) + 
-  scale_color_manual(values = colores_clase)
-```
+Ahora empezamos a hacer el estudio para dar respuesta a nuestros puntos de interés.
 
-Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen únicamente de la estación del año en que se lancen.
-
-Sin embargo, podemos ir un paso más allá y mirar qué pasa si agrupamos las canciones según el mes de lanzamiento.
-
-```{r streams segun mes, fig.height=5, fig.width=10}
-colores_clase = c(rep("#A0EAF1", 2), rep("#83CC3A", 3), rep("#EDED2A", 3),
-                  rep("#B66F01", 3), "#A0EAF1")
-
-meses <- c("January", "February", "March", "April", "May", "June", "July", "August",
-           "September", "October", "November", "December")
-
-spotify2 %>% 
-  drop_na(released_season, streams) %>% 
-  group_by(released_season) %>% 
-  ggplot() + 
-  geom_boxplot(aes(x = factor(released_month, levels = 1:12, labels = meses),
-                   y = streams, color = released_month)) +
-  stat_summary(aes(x = factor(released_month, levels = 1:12, labels = meses), 
-                   y = streams),
-               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
-  labs(x = "Mes de lanzamiento", y = "Reproducciones en Spotify", 
-       color = "Meses del año") +
-  theme_bw() + 
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"),
-        legend.position = "none") + 
-  scale_color_manual(values = colores_clase)
-```
-
-En este caso, podemos ver en los meses enero y septiembre que el extremo superior del rango intercuartílico es mayor a los otros meses así como el extremo superior del bigote. Así que podría ser favorable para tener una canción exitosa lanzarla en uno de estos dos meses.
-
-## 2. Características comunes de las canciones.
+## 1. Características comunes de las canciones.
 
 Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas en 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
 
@@ -400,7 +341,30 @@ matriz_dispersion <- spotify2 %>%
 matriz_dispersion
 ```
 
-Aquí vemos una correlación positiva entre las variables `danceability_%` y `valence_%`, así como entre `energy_%` y `valence_%`. También vemos una correlación negativa entre `energy_%` y `acousticness_%`, que es el par de variables con la correlación más fuerte. También, podemos observar que si nos restringimos a las canciones en modo mayor, presentan una correlación más fuerte.
+Aquí vemos una correlación positiva entre las variables `dance%` y `valence%` , así como entre `energy%` y `valence%` . También vemos una correlación negativa entre `energy%` y `acoustic%`, que es el par de variables con la correlación más fuerte. También, podemos observar que si nos restringimos a las canciones en modo mayor, presentan una correlación más fuerte.
+
+A continuación vamos a realizar unos contrastes de correlación para determinar si efectivamente, como hemos visto en el gráfico anterior, estos pares de variables tienen correlaciones positivas o negativas. Empecemos realizando el siguiente contraste donde las variables X e Y son `dance%` y `valence%`  respectivamente:
+
+
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}>0
+\end{cases}$$
+
+
+```{r}
+
+cor.test(spotify2$`dance%`, spotify2$`valence%` , alternative="greater")
+
+```
+
+```{r}
+
+cor.test(spotify2$`energy%`, spotify2$"dance%", alternative="greater")
+
+```
+
+El p-valor 0.0000000003446 nos da evidencia estadísticamente significativa de que, al contrario de lo que pensabamos, rechazamos nuestra hipotesis alternativa de que hay una correlación positiva entre el porcentaje de la energia que transmite la cancion con lo buena que es para bailar. El último valor, el 0.1857333 bajo el cor, es la correlación de Pearson de los dos vectores de pesos.
 
 Así, vemos que cuanto más buena para bailar es una canción, viene asociado con más positividad; también, cuanto más enérgica, viene asociado con más positividad; y cuanto más enérgica, viene asociado con menos nivel acustico.
 
@@ -536,9 +500,79 @@ a100 %>%
 
 Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
 
-# 3. Artistas con más canciones en listas de Spotify.
+## 2. Analisis de las reproducciones de la canción según la estación del año.
 
-## 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos según la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
+
+```{r añadir variable estacion, fig.height=5, fig.width=8}
+# Añadimos la variable estación de lanzamiento y la posicionamos depués de mes de lanzamiento
+spotify2 <- spotify2 %>%
+  mutate("released_season" = case_when(
+    released_month %in% c(12, 1, 2) ~ "winter",
+    released_month %in% 3:5 ~ "spring",
+    released_month %in% 6:8 ~ "summer",
+    released_month %in% 9:11 ~ "autumn",
+    NA ~ NA)) %>% 
+  relocate(released_season, .before = released_year)
+
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
+
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
+```
+
+```{r streams segun estacion, fig.height=5, fig.width=8}
+colores_clase = c("#83CC3A", "#EDED2A", "#B66F01", "#A0EAF1")
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
+  stat_summary(aes(x = released_season, y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Estaciones del año") +
+  theme_bw() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold")) + 
+  scale_color_manual(values = colores_clase)
+```
+
+Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen únicamente de la estación del año en que se lancen.
+
+Sin embargo, podemos ir un paso más allá y mirar qué pasa si agrupamos las canciones según el mes de lanzamiento.
+
+```{r streams segun mes, fig.height=5, fig.width=10}
+colores_clase = c(rep("#A0EAF1", 2), rep("#83CC3A", 3), rep("#EDED2A", 3),
+                  rep("#B66F01", 3), "#A0EAF1")
+
+meses <- c("January", "February", "March", "April", "May", "June", "July", "August",
+           "September", "October", "November", "December")
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = factor(released_month, levels = 1:12, labels = meses),
+                   y = streams, color = released_month)) +
+  stat_summary(aes(x = factor(released_month, levels = 1:12, labels = meses), 
+                   y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Mes de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Meses del año") +
+  theme_bw() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.position = "none") + 
+  scale_color_manual(values = colores_clase)
+```
+
+En este caso, podemos ver en los meses enero y septiembre que el extremo superior del rango intercuartílico es mayor a los otros meses así como el extremo superior del bigote. Así que podría ser favorable para tener una canción exitosa lanzarla en uno de estos dos meses.
 
 ## 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
