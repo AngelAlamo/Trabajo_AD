@@ -13,25 +13,23 @@ execute:
 
 ## Introducción
 
-En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o _tidy_), por lo que no realizaremos ninguna modificación exceptuando la eliminación de ciertas variables que no son de interés en nuestro estudio.
+En este documento se presentará un estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle y que podéis encontrar en este [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/). La base de datos original ya es ordenada (o *tidy*), por lo que no realizaremos ninguna modificación exceptuando la eliminación de ciertas variables que no son de interés en nuestro estudio.
 
 Respecto al estudio, estará enfocado en determinar cuáles son las características comunes entre las canciones más reproducidas, para ello, intentaremos obtener información de las canciones del dataset a partir de los siguientes puntos:
 
-1. Analisis de las reproducciones de la canción según la estación del año.
+1.  Analisis de las reproducciones de la canción según la estación del año.
 
-2. Características comunes entre las 100 canciones más reproducidas.
+2.  Características comunes entre las 100 canciones más reproducidas.
 
-3. Artistas con más canciones en listas de Spotify.
+3.  Artistas con más canciones en listas de Spotify.
 
-4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+4.  Top 100 canciones/artistas con mayores reproducciones en las plataformas.
 
-5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+5.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
-6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
+6.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
 
-7. Estudio de las canciones según el año y características.
-
-
+7.  Estudio de las canciones según el año y características.
 
 ```{r librerias, include = FALSE}
 library(tidyverse)
@@ -43,6 +41,9 @@ library(patchwork)
 library(MVA)
 library(lessR)
 library(GGally)
+library(ggradar)
+library(ggpubr)
+library(corrplot)
 ```
 
 ## Dataset
@@ -52,12 +53,18 @@ Una vez explicado el objetivo, presentamos el Dataset, mostramos un pequeño res
 ```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
+
+
+breaks_bpm = c("60", "100", "120", "210")
+
+
+
 # Cambiamos el tipo de los valores
 spotify2 <- spotify %>% 
-  mutate(streams = as.numeric(streams), 
-         released_year = as.ordered(released_year),
+  mutate(streams = as.numeric(streams),
          released_month = as.ordered(released_month),
-         released_day = as.ordered(released_day)) %>%
+         released_day = as.ordered(released_day),
+         key = ordered(key, c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))) %>%
   mutate(across(where(is.character), as.factor)) %>% # chr a factor
   
   # Creamos la variable colaboración
@@ -73,6 +80,27 @@ spotify2 <- spotify %>%
   ungroup() %>%
   #relocate(songs_per_artist, .before = released_year )
   
+  # Creamos las variables "rango_bpm" ; "tempo"
+  mutate(rango_bpm = cut(bpm, breaks = breaks_bpm, include.lowest = TRUE),
+         tempo = factor(case_when(
+           between(bpm, 60, 100) ~ "Lenta",
+           between(bpm, 101, 120) ~ "Normal",
+           between(bpm, 121, 210) ~ "Rápida"
+         ))) %>% 
+  relocate(rango_bpm, .before = key) %>% 
+  relocate(tempo, .after = rango_bpm) %>% 
+  
+  # Creamos la variable epoca
+  mutate(epoca = case_when(
+  between(released_year, 1930, 1999) ~ "Epoca_1",
+  between(released_year, 2000, 2015) ~ "Epoca_2",
+  between(released_year, 2016, 2021) ~ "Epoca_3",
+  between(released_year, 2022, 2023) ~ "Epoca_4",
+  )) %>% 
+  relocate(epoca, .after = released_year) %>% 
+  mutate(epoca = ordered(epoca, labels = c("Epoca_1", "Epoca_2", "Epoca_3", "Epoca_4"))) %>% 
+  
+  
   # Añadimos la variable estación de lanzamiento
   mutate("released_season" = case_when(
     released_month %in% c(12, 1, 2) ~ "winter",
@@ -80,6 +108,9 @@ spotify2 <- spotify %>%
     released_month %in% 6:8 ~ "summer",
     released_month %in% 9:11 ~ "autumn",
     NA ~ NA)) %>% 
+  
+  # Necesario para definir la variable época
+  mutate(released_year = as.ordered(released_year)) %>% 
 
   # Eliminamos ciertas variables
   select(!contains("charts")) %>% 
@@ -108,7 +139,7 @@ spotify2 %>%
 
 Realicemos una descripción de cada variable:
 
--   *artist(s)_name*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
+-   \*artist(s)\_name\*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
 
 ```{r head artist name}
 head(spotify2$`artist(s)_name`,5)
@@ -150,22 +181,28 @@ head(spotify2$artist_streams,5)
 summary(spotify2$released_day)
 ```
 
--   *released_season*: variable cualitativa creada por nosotros que representa le estación del año en la que se lanzó la canción:
-
-```{r}
-head(spotify2$released_season,5)
-```
-
 -   *released_month*: variable cualitativa ordinal que representa el mes en el que se lanzó.
 
 ```{r summary released month}
 summary(spotify2$released_month)
 ```
 
+-   *released_season*: variable cualitativa creada por nosotros que representa le estación del año en la que se lanzó la canción:
+
+```{r}
+head(spotify2$released_season,5)
+```
+
 -   *released_year*: variable cualitativa ordinal que representa el año en el que se lanzó.
 
 ```{r summary released year}
 summary(spotify2$released_year)
+```
+
+-   *época*: variable cualitativa que muestra la época en que pertenece la canción según nuestros grupos:
+
+```{r summary epoca, warning = FALSE}
+summary(spotify2$epoca)
 ```
 
 -   *in_spotify_playlists*: variable cuantitativa que mide el número de listas de reproducción de Spotify en las que está incluida la canción.
@@ -190,6 +227,12 @@ summary(spotify2$in_deezer_playlists)
 
 ```{r summary bpm}
 summary(spotify2$bpm)
+```
+
+-   *rango_bpm*: variable cualitativa que muestra en qué rango pertenece el bpm de la canción según nuestros grupos.
+
+```{r summary rango bpm}
+summary(spotify2$rango_bpm)
 ```
 
 -   *key*: variable cualitativa que expresa la tonalidad de la canción.
@@ -248,8 +291,6 @@ summary(spotify2$`speechiness_%`)
 
 Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a estudiar las secciones consideradas.
 
-
-
 ## 1. Analisis de las reproducciones de la canción según la estación del año.
 
 Realizaremos un boxplot, añadiendo la media, para visualizar la variable *streams* agrupando los datos según la estación del año cuando se lanzaron las canciones. Seguiremos el siguiente criterio: - Invierno: meses 12, 1 y 2 - Primavera: meses 3, 4 y 5 - Verano: meses 6, 7 y 8 - Otoño: meses 9, 10 y 11
@@ -296,8 +337,6 @@ Podemos ver que las cajas mantienen rangos muy similares y que las canciones exi
 
 Sin embargo, podemos ir un paso más allá y mirar qué pasa si agrupamos las canciones según el mes de lanzamiento.
 
-
-
 ```{r streams segun mes, fig.height=5, fig.width=10}
 colores_clase = c(rep("#A0EAF1", 2), rep("#83CC3A", 3), rep("#EDED2A", 3),
                   rep("#B66F01", 3), "#A0EAF1")
@@ -326,14 +365,13 @@ spotify2 %>%
 
 En este caso, podemos ver en los meses enero y septiembre que el extremo superior del rango intercuartílico es mayor a los otros meses así como el extremo superior del bigote. Así que podría ser favorable para tener una canción exitosa lanzarla en uno de estos dos meses.
 
-
 ## 2. Características comunes de las canciones.
 
-Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas de 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
+Para resolver la cuestión de qué características comunes tienen nuestro conjunto de canciones más exitosas en 2023 vamos a realizar un gráfico de correlaciones entre estas junto con su número de reproducciones y así ver qué variables estan relacionadas, si es que existe relación entre alguna de ellas:
 
 ```{r correlación características, fig.width = 10, fig.height = 6}
 spotify2 %>%
-  select(streams,bpm, 17:23) %>%
+  select(streams,bpm, 20:26) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
@@ -341,10 +379,20 @@ spotify2 %>%
        )
 ```
 
-Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de esta, que era el objetivo de esta pregunta. Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`
+Como podemos observar la mayor parte de pares de variables no presentan correlación, además de que las distintas características de una canción apenas tienen correlación con el número de reproducciones de ésta, por lo que no podemos ver una relación directa entre algunas características numéricas de las canciones con el número de reproducciones
+
+Aún asi veamos los siguientes gráficos de los pares de variables más correlacionados `energy_%`\~`acousticness_%`, `danceability_%`\~`valence_%` y `valence_%`\~`energy_%`
+
+```{r fig.height=20, fig.width=20}
+#spotify2 %>% 
+#  select(3:6, 18:22) %>% 
+ # ggpairs
+
+#Tarda mucho xd
+```
 
 ```{r gráfico correl energia y acustica, fig.width = 10, fig.height = 6}
-g_1 = spotify2 %>%
+g_1 <- spotify2 %>%
   ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
   geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
 
@@ -481,7 +529,7 @@ a100 <- spotify2 %>%
   slice_max(streams, n = 100)
 
 a100 %>%
-  select(streams,bpm, 17:23) %>%
+  select(streams,bpm, 20:26) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
@@ -490,57 +538,636 @@ a100 %>%
 
 ```
 
-Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`~`acousticness_%`y `danceability_%`~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
-
+Podemos observar que ahora tenemos más variables que presentan mayor correlación con respecto al gráfico anterior, y como vemos, los pares de variables que presentan mayor correlación siguen siendo los mismos: `energy_%`\~`acousticness_%`y `danceability_%`\~`valence_%`. Sin embargo nos quedamos otra vez con las ganas de ver alguna característica que muestre relación con tener más reproducciones.
 
 # 3. Artistas con más canciones en listas de Spotify.
 
-
-
-
-
-
-
 ## 4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
-
-
-
-
-
 
 ## 5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
+Veamos cuáles son los 5 artistas con más canciones en el dataset. Hemos considerado solo las canciones donde artist(s)\_count = 1, es decir, no hemos tenido en cuenta las colaboraciones. Así pues, el top 5 es:
+
+```{r top5}
+
+# Dataset Artistas top5 - Num_canciones
+top5 = spotify2 %>% 
+  group_by(`artist(s)_name`) %>% 
+  summarise(count = n(), .groups = "drop") %>% 
+  arrange(desc(count)) %>% 
+  slice_head(n = 5)
+
+top5
+```
+
+Ahora para tratar con los datos que nos interesan, definimos otro tibble que solo contenga las canciones de estos artistas. Obtenemos que el número de realizaciones es $111$, como esperábamos.
+
+```{r dataset_top3, warning= FALSE}
+
+# Dataset completo con solo los artistas top 5
+spotify_top5 = spotify2 %>% 
+  filter(`artist(s)_name` %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
+  arrange(`artist(s)_name`)
+  
+spotify_top5 %>% 
+  glimpse
+
+```
+
+Para comparar las canciones por artista, lo haremos en dos partes: primero las consideraremos a nivel teórico, es decir, se describirán los datos a partir de la tonalidad, escala utilizada y su bpm ; posteriormente se analizarán las canciones según sus propiedades a partir de las variables "bailabilidad", "valencia", "energía", "acústico", "instrumental", "vivacidad", "habla".
+
+## Key y mode
+
+Empezaremos viendo cuántas canciones haciendo los grupos key \~ mode por artista:
+
+```{r grafica(key,mode,artist)2,fig.width = 10, warning = FALSE}
+
+colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify_top5$key)))
+
+spotify_top5 %>% 
+  drop_na(key, mode) %>% 
+  ggplot() +
+  geom_bar(aes(x = key, fill = key), alpha = 0.7) +
+  facet_grid(mode~`artist(s)_name`) +
+  
+  scale_x_discrete(limits = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B")) +
+  scale_y_discrete(limits = 0:7) +
+  
+  labs(x= "Tonalidad de la canción", y= "Número de canciones") +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=10, face = "bold"),
+        legend.title = element_text(size=10)) +
+  
+  guides(fill = guide_legend(title = "Tonalidad")) +
+  
+  scale_fill_manual(values = colores_degradados)
+  
+
+```
+
+A partir de esta gráfica se puede observar que en general la escala mayor predomina en todos los artistas, comprobémoslo:
+
+```{r, Mayor_menor}
+
+# Función para saber la diferencia Major - Minor
+f = function(x){
+  i = 1
+  j = 1
+  v = c(0)
+  
+  while(i < length(x)) {
+    
+    v[j] = x[i] - x[i+1]
+    i = i+2
+    j = j+1
+  }
+  return(v)
+}
+
+#Dataset con Artista ~ Mode - Frecuencia
+Frecuencia = spotify_top5 %>% 
+  group_by(`artist(s)_name`, mode) %>% 
+  summarise(Frecuencia = n(), .groups = "drop") %>% 
+  pull(Frecuencia)
+
+# Dataset Artistas top5
+spotify_top5_artists = spotify_top5 %>% 
+  group_by(`artist(s)_name`) %>% 
+  summarise()
+
+# Dataset con Artistas top5 - Frecuencia - Modo_dominante
+major_minor = cbind(spotify_top5_artists, Major_Minor = f(Frecuencia)) %>% 
+  mutate(Modo_dominante = case_when(
+      Major_Minor > 0 ~ "Major",
+      Major_Minor < 0 ~ "Minor",
+      Major_Minor == 0 ~ "Ninguna"), .keep = "all")
+
+
+major_minor
+
+```
+
+Vemos que el único artista que ha utilizado más la escala menor es "The Weeknd". Por otro lado, destaca que ninguna canción de los artistas presenta la tonalidad $C$ (Do) en modo Mayor, que es la escala más conocida, aunque también la más básica en cuanto a novedad. Veamos ahora cual es la tonalidad más usada por artista:
+
+```{r, tonalidad dominante por artista}
+
+spotify_top5 %>% 
+  drop_na(key) %>% 
+  group_by(`artist(s)_name`, key) %>% 
+  summarise(Frecuencia = n(), .groups = "drop") %>% 
+  pivot_wider(names_from = key,
+              values_from = Frecuencia)
+
+
+```
+
+```{r tibble tono_mas_usado(top5)}
+
+spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E", "C# - F - G", "G", "A"))
+
+spotify_top5_key
+```
+
+Vemos que todos los artistas tienen una tonalidad principal distinta, excepto SZA ya que el número de canciones por tonalidad está más balanceado.
+
+Una vez visto como se relacionan estas variables respecto estos artistas, mostremos las reproducciones que tuvieron cada canción con el siguiente gráfico:
+
+```{r, streams por key, fig.width = 10}
+spotify_top5 %>% 
+  drop_na(key, streams) %>% 
+  ggplot(aes(x = key, y = streams, color = mode)) +
+  geom_point() +
+  facet_grid(.~`artist(s)_name`) +
+  
+  labs(x= "Tonalidad de la canción", y= "Streams") +
+  guides(fill = guide_legend(title = "Modo")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15))
+  
+
+```
+
+Pordemos observar que todos los puntos estan concentrados en el rango $[0, 1.5*10^9]$ reproducciones, excepto una canción de The Weeknd que supera las $3*10^9$ reproducciones. Veamos la media de reproducciones por artista:
+
+```{r media streams(artist)}
+
+spotify_top5 %>% 
+  group_by(`artist(s)_name`) %>% 
+  summarise(Media_streams = mean(streams))
+  
+```
+
+Tenemos que Harry Styles y The Weeknd tienen la media de reproducciones (recordemos que se considera solo en Spotify) más alta. Hay que tener en cuenta que de esta lista la muestra de cada artista es distinta, por ejemplo solo hay 17 canciones de Harry Styles y 34 canciones de Taylor Swift. Si tenemos en cuenta el modo, las medias son las siguientes:
+
+```{r, media streams(mode)}
+
+spotify_top5 %>% 
+  group_by(`artist(s)_name`, mode) %>% 
+  summarise(Media_streams_modo = mean(streams), .groups = "drop")
+
+```
+
+En los artistas Bad Bunny, SZA y Taylor Swift la diferencia es relativamente baja, en cambio en los artistas Harry Styles y The Weeknd, la diferencia resalta habiendo diferencias de casi 300 millones de reproducciones. Por último, si hacemos las medias respecto la tonalidad:
+
+```{r, media streams(key)}
+
+tabla_media_key = spotify_top5 %>% 
+  drop_na(key) %>% 
+  group_by(`artist(s)_name`, key) %>% 
+  summarise(Media_streams_key = mean(streams), .groups = "drop") %>% 
+  pivot_wider(names_from = key,
+              values_from = Media_streams_key)
+
+
+tonalidad = c("C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B")
+
+
+vec_max = c(0)
+vec_max_key = c("0")
+for(k in 1:5){
+  vec_max[k] = max(tabla_media_key[k,-1], na.rm = TRUE)
+  vec_max_key[k] = tonalidad[which.max(tabla_media_key[k,-1])]
+  
+}
+
+cbind(spotify_top5_artists, Max = vec_max, Max_key = vec_max_key)
+
+
+```
+
+## bpm
+
+Para estudiar el bpm de las canciones crearemos una nueva variable, "rango_bpm" donde dividiremos las canciones en tres grupos: "lenta", "normal" o "rápida" según si el bpm está entre $60-100$, entre $101-120$ o bien entre $121-210$ respectivamente, donde hemos ajustado estos rangos según los valores que toma la variable bpm en el dataset.
+
+Estudiemos el número de reproducciones de cada artista según el bpm utilizado:
+
+```{r grafico_top5(bpm), fig.width= 10}
+
+spotify_top5 %>% 
+  ggplot() +
+  geom_point(aes(x = bpm, y = streams, color = `artist(s)_name`)) +
+  facet_grid(.~ `artist(s)_name`) +
+  theme_bw() +
+  
+  labs(x= "bpm", y= "Streams") +
+  guides(fill = guide_legend(title = "Artista")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15))
+
+
+```
+
+Vemos que las canciones se concentran en un bpm entre $90$ y $120$, que tiene sentido ya que los géneros musicales tienen un bpm medio entre esos valores. Debido a la falta de realizaciones no se puede deducir algún comportamiento de la variable "streams" según el bpm de las canciones de estos artistas.
+
+Representaremos los datos a partir de un boxplot por cada artista para ver como se distribuye los cuartiles en función de la variable "streams".
+
+```{r bocplot_bpm(top5), fig.width= 10}
+
+spotify_top5 %>% 
+  ggplot() +
+  geom_boxplot(aes(x = tempo, y = streams, color = `artist(s)_name`), show.legend = FALSE)+
+  facet_grid(.~`artist(s)_name`) +
+  theme_bw()+
+  geom_jitter(aes(x = tempo, y = streams, color = `artist(s)_name`), alpha = 0.5, 
+              show.legend = FALSE, 
+              position = position_jitter(width = 0.2, seed = 0)) +
+  labs(x = "Tempo", y = "Streams") +
+  labs(title = "Reproducciones según el tempo",
+       subtitle = "Top 5 artistas") +
+  theme(plot.title=element_text(size=20, face='bold', color='red'), plot.subtitle = element_text(size=20, face='bold'))
+
+
+```
+
+A partir de estos gráficos no podemos ver si hay la elección del bpm influye en el número de reproducciones, ya que cada tempo se comporta de distinta manera para cada artista, por ejemplo el artista Harry Styles, las canciones con más reproducciones parecen ser aquellas con un ritmo lento, en cambio con el artista The Weeknd, el ritmo rápido presenta un mayor rango en la variable reproducciones y dos valores atípicos muy diferenciados.
+
+Veamos si consideramos aquellas canciones donde la variable "bpm" tiene un valor entre $90$ y $120$:
+
+```{r boxplot_bpm_90_120(top5), fig.width=10}
+
+
+spotify_top5 %>% 
+  filter(between(bpm, 90, 120)) %>% 
+  ggplot() +
+  geom_boxplot(aes(x = `artist(s)_name`, y = streams, color = `artist(s)_name`), show.legend = FALSE)+
+  theme_bw()+
+  geom_jitter(aes(x = `artist(s)_name`, y = streams, color = `artist(s)_name`), alpha = 0.5, 
+              show.legend = FALSE, 
+              position = position_jitter(width = 0.2, seed = 0)) +
+  labs(x = "Artista", y = "Streams") +
+  labs(title = "Reproducciones del top 5 artistas",
+       subtitle = "bpm entre 90 y 120") +
+  
+  theme(plot.title=element_text(size=20, face='bold', color='red'), plot.subtitle = element_text(size=20, face='bold'))
+
+
+```
+
+Tenemos que si restringimos la variables "bpm" entre los valores $90$ y $120$, la distribución de los puntos se mantienen en el mismo rango de valores independientemente del artista.
+
+## Propiedades de las canciones
+
+Para comparar estos datos hemos construido un gráfico radar, donde el mínimo es $0%$ y el máximo $100%$. Los valores considerados en cada variable han sido las medias correspondientes a cada artista.
+
+```{r ggradar_artistas_top5, fig.pos="center", warning = FALSE}
+
+
+# Consideramos las columnas 'artistas' y las de % ; Agrupamos por artistas y hacemos la media
+spotify_top5_perc = spotify_top5 %>% 
+  select(`artist(s)_name`,contains("%")) %>% 
+  group_by(`artist(s)_name`) %>% 
+  summarise(
+    across(contains("%"), ~ mean(., na.rm = T))
+  )
 
 
 
+# Cambio de los nombres
+spotify_top5_perc = spotify_top5_perc %>% 
+  dplyr::rename(., dance = `danceability_%`,
+         valence = `valence_%`,
+         energy = `energy_%`,
+         acoustic = `acousticness_%`,
+         instrumental = `instrumentalness_%`,
+         live = `liveness_%`,
+         speech = `speechiness_%`,
+         artist = `artist(s)_name`)
 
+
+
+# Gráfico radar
+ggradar(spotify_top5_perc,
+        
+        #Tamaño texto
+        base.size = 15,
+        
+        # Límites
+        grid.min = 0,
+        grid.mid = 50,
+        grid.max = 100,
+        
+        # Valores de los límites
+        values.radar = c("0%","50%","100%"),
+        
+        #Fondo
+        background.circle.colour = "white",
+        
+        # Tamaño texto variables
+        axis.label.size = 4,
+        
+        # Color líneas límites
+        gridline.min.colour = "gray60",
+        gridline.mid.colour = "gray60",
+        gridline.max.colour = "gray60",
+        gridline.min.linetype = 1,
+        gridline.mid.linetype = 1,
+        gridline.max.linetype = 1,
+        
+        # Las líneas y los puntos del radar
+        group.line.width = 1.25,
+        group.point.size = 5,
+        
+        # Leyenda
+        legend.title = "Artista",
+        legend.position = "right",
+        legend.text.size = 10
+        )
+
+
+```
+
+Podemos ver que los valores son sorprendentemente parecidos. De aquí se podría deducir que esa distribución tiene una especie de "equilibrio" en el sentido de que variar alguna variable no ofrecería una canción más agradable al oyente, sino que todo está compensado. La única variable que presenta una mayor descompensación es "acoustic" (Cantidad de sonido acústico), que tiene un rango más alto. De esto podemos decir que los 5 artistas con más canciones dentro de las canciones con más reproducciones, presentan una cantidad muy baja de palabras, de instrumental, actuación y destacan por su bailabilidad y energía.
+
+Por otro lado se puede intuir que cierto aumento de una variable puede hacer tender que ptra disminuya, si vemos el gráfico de correlaciones:
+
+```{r correlacion, warning = FALSE}
+
+spotify_top5 %>%
+  select(contains("%")) %>%
+  
+  dplyr::rename(dance = `danceability_%`,
+         valence = `valence_%`,
+         energy = `energy_%`,
+         acoustic = `acousticness_%`,
+         instrumental = `instrumentalness_%`,
+         live = `liveness_%`,
+         speech = `speechiness_%`) %>% 
+  
+
+  na.omit(.) %>%
+  cor(.) %>% 
+  
+  ggcorrplot(., hc.order = TRUE,
+        type = "lower",
+        colors = c("blue",
+                    "white", "red"))
+
+spotify_top5 %>%
+  select(contains("%")) %>%
+  na.omit(.) %>% 
+  cor(.)
+
+```
+
+Tenemos que la energía es una variable importante: en esta muestra se ha visto que cuanta más energía presenta una canción, menos acústico tiene, cosa que en un principio puede ser intuitivo, pero esto depende de qué aspectos tienes en cuenta al medir el nivel de energía y una mayor postividad en la letra.
+
+Otra variable que destaca es precisamente el acústico: en esta muestra se ha visto que cuanta más acústico presenta la canción, menos bailabilidad, positividad y energía tiene.
+
+Entre las variables que no han mostrado tener influencia son la cantidad de palabras y la presencia de elementos de actuación en directo.
 
 ## 6. ¿Son igual de famosas las canciones en distintas plataformas?. Correlacion entre listas y reproducciones de Spotify.
 
+## 7. Estudio de las canciones según la época y características.
+
+Para hacer un análisis de las canciones más famosas en los intervalos 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023, primero añadiremos una nueva variable que representará en que época pertenece la canción:
+
+Empecemos con el número de playlists de cada plataforma, a continuación mostraremos un boxplot por cada época:
+
+```{r boxplot_epocas_spotify, warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_spotify_playlists",
+          title = "Numero de listas en Spotify por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Spotify",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 5000, seq(10000, 50000, by = 10000)))
+  
+
+```
+
+En este gráfico podemos ver algo que en principio puede parecer contraintuitivo: las canciones más antiguas ($1930 - 2015$) están presentes en más playlistas hechas por la plataforma Spotify que las canciones más actuales ($2016 - 2023$).
+
+Esto puede deberse a varios factores, algunos podrían ser:
+
+-   "Clásicos": teniendo en cuenta que estas canciones son las más reproducidas en Spotify este año, se pueden entender como "clásicos" musicales, enotnces aunque pase el tiempo las personas reclaman estas canciones.
+
+-   "Polivalencia": debido a la fecha de lanzamiento de las canciones y la popularidad de estas, se podrían etiquetar de muchas formas, por ejemplo: "mix de los 2000", "mix de los 90", "clásicos musicales". En cambio, la música popular actual está centrada principalmente en dos géneros musicales: pop y reggaeton.
+
+-   "Fugacidad": actualmente las canciones pueden llegar a más personas debido a la fácil accesibilidad, esto se refleja en las reproducciones. Ahora bien, aunque las canciones se hagan populares, el tiempo que se mantienen es bastante bajo, ya que cada vez hay más artistas y por lo tanto, son canciones de moda.
+
+De la misma manera, podemos hacer un boxplot con las playlists de Apple Music y Deezer:
+
+```{r boxplot_epocas_apple, fig.pos = "center", warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_apple_playlists",
+          title = "Numero de listas en Apple Music por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Apple Music",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 50, seq(100, 700, by = 100)))
+  
+
+```
+
+En este caso cada época se mantiene en un mismo rango, de aquí se podría deducir que el número de playlists en Apple Music no depende del año de lanzamiento de la canción. Lo más destacable es la época $2016-2021$ que presenta una mayor cantidad de valores atípicos.
+
+```{r boxplot_epocas_deezer, warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_deezer_playlists",
+          title = "Numero de listas en Deezer por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Deezer",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 500, 1000, 2000, 5000, 10000))
+  
+
+```
+
+En la plataforma Deezer, destacan las canciones de los años $2000-2015$, que presentan un mayor rango en cuanto a número de listas. Por otro lado, en las canciones de los años $1930-1999$ y $2016-2021$ contienen valores atípicos, especialmente los años $1930-1999$ donde hay una canción que está en más de $10000$ listas de Deezer.
+
+Estudiemos ahora cuáles son las características de las canciones por épocas. De la misma manera que antes, haremos un gráfico radar donde agruparemos por épocas y en cada variable consideraremos el valor medio correspondiente. Así, obtenemos el siguiente gráfico:
+
+```{r ggradar_epocas, fig.pos="center", warning = FALSE}
+
+
+# Consideramos las columnas 'artistas' y las de % ; Agrupamos por artistas y hacemos la media
+spotify_epoca_perc = spotify2 %>% 
+  select(epoca, contains("%")) %>% 
+  group_by(epoca) %>% 
+  summarise(
+    across(contains("%"), ~ mean(., na.rm = T))
+  )
 
 
 
+# Cambio de los nombres
+spotify_epoca_perc = spotify_epoca_perc %>% 
+  dplyr::rename(dance = `danceability_%`,
+         valence = `valence_%`,
+         energy = `energy_%`,
+         acoustic = `acousticness_%`,
+         instrumental = `instrumentalness_%`,
+         live = `liveness_%`,
+         speech = `speechiness_%`)
 
 
-## 7. Estudio de las canciones según el año y características.
+
+# Gráfico radar
+ggradar(spotify_epoca_perc,
+        
+        #Tamaño texto
+        base.size = 15,
+        
+        # Límites
+        grid.min = 0,
+        grid.mid = 50,
+        grid.max = 100,
+        
+        # Valores de los límites
+        values.radar = c("0%","50%","100%"),
+        
+        #Fondo
+        background.circle.colour = "white",
+        
+        # Tamaño texto variables
+        axis.label.size = 4,
+        
+        # Color líneas límites
+        gridline.min.colour = "gray60",
+        gridline.mid.colour = "gray60",
+        gridline.max.colour = "gray60",
+        gridline.min.linetype = 1,
+        gridline.mid.linetype = 1,
+        gridline.max.linetype = 1,
+        
+        # Las líneas y los puntos del radar
+        group.line.width = 1.25,
+        group.point.size = 5,
+        
+        # Leyenda
+        legend.title = "Época",
+        legend.position = "right",
+        legend.text.size = 10
+        )
+
+
+```
+
+Podemos ver que el gráfico resultante es muy similar al que tuvimos cuando estudiábamos a los 5 artistas con más canciones en el Dataset. Podríamos deducir que lo que vimos anteriormente era un caso particular, es decir, realmente la configuración obtenida por los 5 artistas se debe a la configuración por épocas. Otra deducción podría ser que aunque la forma de expresar música haya cambiado debido a los avances tecnológicos, las canciones siempre han seguido las mismas reglas, proporcionando sus características.
+
+Podemos hacer un gráfico de correlaciones por épocas para ver si son las mismas variables las que han mostrado una tendencia respecto otras:
+
+```{r correlacion(epocas)}
+
+
+par(mfrow = c(2,2))
+
+# Cambio de los nombres de las variables
+spotify_epoca = spotify2 %>% 
+  dplyr::rename(dance = `danceability_%`,
+         valence = `valence_%`,
+         energy = `energy_%`,
+         acoustic = `acousticness_%`,
+         instrumental = `instrumentalness_%`,
+         live = `liveness_%`,
+         speech = `speechiness_%`)
+
+
+corplot_ep1 = spotify_epoca %>%
+  filter(epoca == "Epoca_1") %>%
+  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+corplot_ep2 = spotify_epoca %>%
+  filter(epoca == "Epoca_2") %>%
+  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
 
 
 
+corplot_ep3 = spotify_epoca %>%
+  filter(epoca == "Epoca_3") %>%
+  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
 
 
+
+corplot_ep4 = spotify_epoca %>%
+  filter(epoca == "Epoca_4") %>%
+  select("dance", "valence", "energy", "acoustic", "instrumental", "live") %>% 
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+par(mfrow = c(1,1))
+
+
+```
+
+Efectivamente, en general las relaciones de tendencia son las mismas, donde destacan las variables "dance", "valence", "energy" y "acoustic".
+
+## Key y mode por épocas
+
+Veamos las frecuencias de cada tono y modo por época:
+
+```{r graffico_tonalidad_frecuencia(epocas), fig.width= 10}
+
+spotify2 %>% 
+  drop_na(key, mode) %>%
+  group_by(epoca, key, mode) %>% 
+  summarise(Frecuencias = n(), .groups = "drop") %>% 
+  ggplot() +
+  geom_point(aes(x = key, y = Frecuencias, color = mode), alpha = 0.6) +
+  facet_grid(.~epoca) +
+  
+  theme_bw() +
+  labs(x= "Tonalidad de la canción", y= "Frecuencias") +
+  guides(fill = guide_legend(title = "Modo")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15)) +
+  scale_x_discrete(limits = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))
+
+
+
+```
+
+Debido a la gran diferencia de muestras por cada época, no podemos obtener mucha información de los datos. Un aspecto que podemos ver es que ninguna canción de las más reproducidas en Spotify está en $C$ (Do).
 
 ## Vector de medias, covarianzas y contrastes generales
 
-
-
-
-
-
 ## Conclusión
 
-
 Podemos ver que las cajas mantienen rangos muy similares y que las canciones exitosas son valores atípicos. Una posible interpretación de este gráfico es que las canciones exitosas no dependen (únicamente?) de la estación del año en que se lancen.
-
 
 ### Matriz de dispersión
 
@@ -625,8 +1252,6 @@ spotify2 %>%
 
 En cambio, la correlación de Pearson entre la mayoría del resto de variables es muy cercana a cero, lo que es señal de que la variación conjunta de los pares de estas no tiene una tendencia clara.
 
-
-
 ```{r, }
 
 PieChart(collaboration, data = spotify2,
@@ -638,13 +1263,11 @@ PieChart(collaboration, data = spotify2,
 
 # Estudio caracteristicas de las canciones:
 
-
-
 # Estudio por plataformas:
 
 ```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
 spotify2 %>%
-  select(streams, 11:13) %>%
+  select(streams, contains("%")) %>%
   na.omit(.) %>% 
   cor(.) %>% 
   corPlot(.,
