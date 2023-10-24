@@ -163,16 +163,15 @@ spotify2 %>%
 2.  Analisis de las reproducciones de la canción según la estación del año.
 
 
-3.  Top 100 canciones con mayores reproducciones en las plataformas.
+3.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades
 
 
-4.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+4.  Estudio de las canciones según la época y características.
 
 
-5.  ¿Son igual de famosas las canciones en distintas plataformas?.
+5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
 
 
-6.  Estudio de las canciones según la época y características.
 
 
 ## Vector de medias y matriz de correlación
@@ -197,11 +196,446 @@ spotify2 %>%
 ## 4.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
 
+```{r top5}
+
+# Dataset Artistas top5 - Num_canciones
+top5 = spotify2 %>% 
+  group_by(artist) %>% 
+  summarise(count = n(), .groups = "drop") %>% 
+  arrange(desc(count)) %>% 
+  slice_head(n = 5)
+
+top5
+```
+
+Estudio dividido en dos partes:
+
+- Nivel teórico: key, mode y bpm
+
+- Propiedades de las canciones: valence, energy...
+
+
+##
+
+### Key y mode
+
+```{r grafica(key,mode,artist)2,fig.width = 10, warning = FALSE}
+
+colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify_top5$key)))
+
+spotify_top5 %>% 
+  drop_na(key, mode) %>% 
+  ggplot() +
+  geom_bar(aes(x = key, fill = key), alpha = 0.7) +
+  facet_grid(mode~artist) +
+  
+  scale_x_discrete(limits = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B")) +
+  scale_y_discrete(limits = 0:7) +
+  
+  labs(x= "Tonalidad de la canción", y= "Número de canciones") +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=10, face = "bold"),
+        legend.title = element_text(size=10)) +
+  
+  guides(fill = guide_legend(title = "Tonalidad")) +
+  
+  scale_fill_manual(values = colores_degradados)
+  
+
+```
+
+```{r, Mayor_menor}
+
+# Función para saber la diferencia Major - Minor
+f = function(x){
+  i = 1
+  j = 1
+  v = c(0)
+  
+  while(i < length(x)) {
+    
+    v[j] = x[i] - x[i+1]
+    i = i+2
+    j = j+1
+  }
+  return(v)
+}
+
+#Dataset con Artista ~ Mode - Frecuencia
+Frecuencia = spotify_top5 %>% 
+  group_by(artist, mode) %>% 
+  summarise(Frecuencia = n(), .groups = "drop") %>% 
+  pull(Frecuencia)
+
+# Dataset Artistas top5
+spotify_top5_artists = spotify_top5 %>% 
+  group_by(artist) %>% 
+  summarise()
+
+# Dataset con Artistas top5 - Frecuencia - Modo_dominante
+major_minor = cbind(spotify_top5_artists, Major_Minor = f(Frecuencia)) %>% 
+  mutate(Modo_dominante = case_when(
+      Major_Minor > 0 ~ "Major",
+      Major_Minor < 0 ~ "Minor",
+      Major_Minor == 0 ~ "Ninguna"), .keep = "all")
+
+
+major_minor
+
+```
+
+##
+
+```{r, tonalidad dominante por artista}
+
+spotify_top5 %>% 
+  drop_na(key) %>% 
+  group_by(artist, key) %>% 
+  summarise(Frecuencia = n(), .groups = "drop") %>% 
+  pivot_wider(names_from = key,
+              values_from = Frecuencia)
+
+
+```
+
+```{r tibble tono_mas_usado(top5)}
+
+spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E", "C# - F - G", "G", "A"))
+
+spotify_top5_key
+```
+
+##
+
+```{r, streams por key, fig.width = 10}
+spotify_top5 %>% 
+  drop_na(key, streams) %>% 
+  ggplot(aes(x = key, y = streams, color = mode)) +
+  geom_point() +
+  facet_grid(.~artist) +
+  
+  labs(x= "Tonalidad de la canción", y= "Streams") +
+  guides(fill = guide_legend(title = "Modo")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15))
+  
+```
+
+##
+
+
+```{r, media streams(mode)}
+
+spotify_top5 %>% 
+  group_by(artist, mode) %>% 
+  summarise(Media_streams_modo = mean(streams), .groups = "drop")
+
+```
+
+```{r, media streams(key)}
+
+tabla_media_key = spotify_top5 %>% 
+  drop_na(key) %>% 
+  group_by(artist, key) %>% 
+  summarise(Media_streams_key = mean(streams), .groups = "drop") %>% 
+  pivot_wider(names_from = key,
+              values_from = Media_streams_key)
+
+
+tonalidad = c("C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B")
+
+
+vec_max = c(0)
+vec_max_key = c("0")
+for(k in 1:5){
+  vec_max[k] = max(tabla_media_key[k,-1], na.rm = TRUE)
+  vec_max_key[k] = tonalidad[which.max(tabla_media_key[k,-1])]
+  
+}
+
+cbind(spotify_top5_artists, Max = vec_max, Max_key = vec_max_key)
+
+
+```
+##
+
+### bpm
+
+```{r grafico_top5(bpm), fig.width= 10}
+
+spotify_top5 %>% 
+  ggplot() +
+  geom_point(aes(x = bpm, y = streams, color = artist)) +
+  facet_grid(.~ artist) +
+  theme_bw() +
+  
+  labs(x= "bpm", y= "Streams") +
+  guides(fill = guide_legend(title = "Artista")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15))
+
+
+```
+
+
+##
+
+```{r boxplot_bpm(top5), fig.width= 10}
+
+spotify_top5 %>% 
+  ggplot() +
+  geom_boxplot(aes(x = tempo, y = streams, color = artist), show.legend = FALSE)+
+  facet_grid(.~artist) +
+  theme_bw()+
+  geom_jitter(aes(x = tempo, y = streams, color = artist), alpha = 0.5, 
+              show.legend = FALSE, 
+              position = position_jitter(width = 0.2, seed = 0)) +
+  labs(x = "Tempo", y = "Streams") +
+  labs(title = "Reproducciones según el tempo",
+       subtitle = "Top 5 artistas") +
+  theme(plot.title=element_text(size=20, face='bold', color='red'), plot.subtitle = element_text(size=20, face='bold'))
+
+
+```
+
+
+##
+
+```{r boxplot_bpm_90_120(top5), fig.width=10}
+
+
+spotify_top5 %>% 
+  filter(between(bpm, 90, 120)) %>% 
+  ggplot() +
+  geom_boxplot(aes(x = artist, y = streams, color = artist), show.legend = FALSE)+
+  theme_bw()+
+  geom_jitter(aes(x = artist, y = streams, color = artist), alpha = 0.5, 
+              show.legend = FALSE, 
+              position = position_jitter(width = 0.2, seed = 0)) +
+  labs(x = "Artista", y = "Streams") +
+  labs(title = "Reproducciones del top 5 artistas",
+       subtitle = "bpm entre 90 y 120") +
+  
+  theme(plot.title=element_text(size=20, face='bold', color='red'), plot.subtitle = element_text(size=20, face='bold'))
+
+
+```
+
+
+
 ## 5.  ¿Son igual de famosas las canciones en distintas plataformas?.
 
 
 ## 6.  Estudio de las canciones según la época y características.
 
+Análisis de las canciones más famosas en los intervalos:
+1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023
+
+##
+
+### Key y mode
+
+```{r grafico_tonalidad_frecuencia(epocas), fig.width= 10}
+
+spotify2 %>% 
+  drop_na(key, mode) %>%
+  group_by(epoca, key, mode) %>% 
+  summarise(Frecuencias = n(), .groups = "drop") %>% 
+  ggplot() +
+  geom_point(aes(x = key, y = Frecuencias, color = mode), alpha = 0.6) +
+  facet_grid(.~epoca) +
+  
+  theme_bw() +
+  labs(x= "Tonalidad de la canción", y= "Frecuencias") +
+  guides(fill = guide_legend(title = "Modo")) +
+  
+  theme_bw() +
+  theme(axis.text = element_text(size=8),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 15)) +
+  scale_x_discrete(limits = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))
+
+
+
+```
+
+##
+
+### Spotify
+
+```{r boxplot_epocas_spotify, warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_spotify_playlists",
+          title = "Numero de listas en Spotify por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Spotify",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 5000, seq(10000, 50000, by = 10000)))
+  
+
+```
+
+
+### Apple Music
+
+```{r boxplot_epocas_apple, fig.pos = "center", warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_apple_playlists",
+          title = "Numero de listas en Apple Music por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Apple Music",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 50, seq(100, 700, by = 100)))
+  
+
+```
+
+
+### Deezer
+
+```{r boxplot_epocas_deezer, warning=FALSE}
+
+ggboxplot(spotify2, x = "epoca" ,y = "in_deezer_playlists",
+          title = "Numero de listas en Deezer por época",
+          xlab = "Épocas",
+          ylab = "Número de playlists en Deezer",
+          size = 0.7,
+          add="jitter",
+          shape="epoca",
+          notch = FALSE,
+          color="epoca",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07","#BB3099")) +
+  scale_x_discrete(label = c("1930-1999", "2000-2015", "2016-2021", "2022-2023")) +
+  scale_y_continuous(breaks = c(0, 500, 1000, 2000, 5000, 10000))
+  
+
+```
+
+
+## Propiedades de las canciones
+
+```{r ggradar_epocas, fig.pos="center", warning = FALSE}
+
+
+# Consideramos las columnas 'artistas' y las de % ; Agrupamos por artistas y hacemos la media
+spotify_epoca_perc = spotify2 %>% 
+  select(epoca, contains("%")) %>% 
+  group_by(epoca) %>% 
+  summarise(
+    across(contains("%"), ~ mean(., na.rm = T))
+  )
+
+
+# Gráfico radar
+ggradar(spotify_epoca_perc,
+        
+        #Tamaño texto
+        base.size = 15,
+        
+        # Límites
+        grid.min = 0,
+        grid.mid = 50,
+        grid.max = 100,
+        
+        # Valores de los límites
+        values.radar = c("0%","50%","100%"),
+        
+        #Fondo
+        background.circle.colour = "white",
+        
+        # Tamaño texto variables
+        axis.label.size = 4,
+        
+        # Color líneas límites
+        gridline.min.colour = "gray60",
+        gridline.mid.colour = "gray60",
+        gridline.max.colour = "gray60",
+        gridline.min.linetype = 1,
+        gridline.mid.linetype = 1,
+        gridline.max.linetype = 1,
+        
+        # Las líneas y los puntos del radar
+        group.line.width = 1.25,
+        group.point.size = 5,
+        
+        # Leyenda
+        legend.title = "Época",
+        legend.position = "right",
+        legend.text.size = 10
+        )
+
+
+```
+
+
+##
+
+```{r correlacion(epocas)}
+
+
+par(mfrow = c(2,2))
+
+corplot_ep1 = spotify2 %>%
+  filter(epoca == "Epoca_1") %>%
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>% 
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+corplot_ep2 = spotify2 %>%
+  filter(epoca == "Epoca_2") %>%
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+
+corplot_ep3 = spotify2 %>%
+  filter(epoca == "Epoca_3") %>%
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+
+corplot_ep4 = spotify2 %>%
+  filter(epoca == "Epoca_4") %>%
+  select("dance%", "valence%", "energy%", "acoustic%", "instrumental%", "live%") %>%
+  na.omit() %>% 
+  cor() %>% 
+  corrplot()
+
+
+par(mfrow = c(1,1))
+
+
+```
 
 
 
