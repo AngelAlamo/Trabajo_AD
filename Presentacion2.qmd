@@ -4,6 +4,8 @@ author: "by Óscar Vanrell, Ángel Álamo y Juanjo Doblas"
 format: revealjs
 editor: visual
 embed-resources: true
+width: 1500
+height: 1000
 ---
 
 ```{r librerias, include = FALSE}
@@ -43,7 +45,7 @@ Fuente: obtenido de la página web Kaggle, [enlace](https://www.kaggle.com/datas
 
 Contexto: canciones anteriores a la fecha 14/7/2023
 
-Objetivo: análisis enfocado en determinar cuáles son las **características comunes entre las canciones más reproducidas**
+Objetivo: análisis enfocado en determinar cuáles son los **factores que presentan las canciones más reproducidas**
 
 ## Limpieza de los datos
 
@@ -161,7 +163,7 @@ spotify2 %>%
 
 5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
 
-## Vector de medias y matriz de correlación
+## [Vector de medias y matriz de correlaciones]{.r-fit-text}
 
 ::: panel-tabset
 
@@ -176,26 +178,121 @@ as.list(v_medias)
 
 ### Matriz de correlación
 
-```{r matriz correlaciones, fig.width = 15, fig.height = 8}
+```{r matriz correlaciones, fig.width = 18, fig.height = 11}
 spotify2 %>%
   select(where(is.numeric)) %>%
   na.omit(.) %>% 
   cor(.) %>% 
-  corPlot(., cex = 1 , main = "Correlación Entre Variables Cuantitativas")
+  corPlot(., cex = 1 , main = "Correlación Entre Variables Cuantitativas", 
+          xsrt = -30)
 ```
 :::
 
-## Análisis multivariante
+## 1. Características comunes de las canciones.
 
-## 1. Correlación entre las variables cuantitativas.
+::: panel-tabset
+### Correlaciones
 
-1.1 Correlación considerando las 100 canciones más reproducidas
+```{r correlación caracteristicas, fig.width = 10, fig.height = 6}
+spotify2 %>%
+  select(streams,bpm, 20:26) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(., cex = 0.5, main = "Correlación Entre Características", xsrt = -30)
+```
 
-## 2. Analisis de las reproducciones de la canción según la estación del año.
+### Matriz de dispersión
+```{r matriz dispersion, fig.height=8, fig.width=15}
+matriz_dispersion <- spotify2 %>% 
+  select(19:23) %>% 
+  ggpairs(aes(color = spotify2$mode))
 
-## 3. Top 100 canciones con mayores reproducciones en las plataformas.
+matriz_dispersion
+```
+:::
 
-## 4. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+## 1.1 Considerando las 100 canciones más reproducidas
+
+```{r top 100 canciones, warning=FALSE}
+top100canciones <- spotify2 %>% 
+  slice_max(streams, n = 100)
+```
+
+::: panel-tabset
+### Correlaciones
+
+```{r correlación caracteristicas top100, fig.width = 10, fig.height = 6}
+top100canciones %>%
+  select(streams,bpm, 20:26) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(., cex = 0.5)
+```
+
+### Matriz de dispersión
+```{r matriz dispersion top100, fig.height=8, fig.width=15}
+top100canciones %>% 
+  select(19:23) %>% 
+  ggpairs(aes(color = top100canciones$mode))
+```
+:::
+
+## Contrastes de hipótesis
+
+## [2. Analisis de las reproducciones de la canción según la estación del año.]{.r-fit-text}
+
+:::panel-tabset
+### Estaciones
+```{r streams segun estacion, fig.height=5, fig.width=8}
+colores_clase = c("#83CC3A", "#EDED2A", "#B66F01", "#A0EAF1")
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
+  stat_summary(aes(x = released_season, y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Estaciones del año") +
+  theme_bw() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold")) + 
+  scale_color_manual(values = colores_clase)
+```
+
+### Meses
+```{r streams segun mes, fig.height=5, fig.width=10}
+colores_clase = c(rep("#A0EAF1", 2), rep("#83CC3A", 3), rep("#EDED2A", 3),
+                  rep("#B66F01", 3), "#A0EAF1")
+
+meses <- c("January", "February", "March", "April", "May", "June", "July", "August",
+           "September", "October", "November", "December")
+
+spotify2 %>% 
+  drop_na(released_season, streams) %>% 
+  group_by(released_season) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = factor(released_month, levels = 1:12, labels = meses),
+                   y = streams, color = released_month)) +
+  stat_summary(aes(x = factor(released_month, levels = 1:12, labels = meses), 
+                   y = streams),
+               fun = mean, geom = "point", shape = 19, size = 1, color = "black") +
+  labs(x = "Mes de lanzamiento", y = "Reproducciones en Spotify", 
+       color = "Meses del año") +
+  theme_bw() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.position = "none") + 
+  scale_color_manual(values = colores_clase)
+```
+:::
+
+## [3. Top 100 canciones con mayores reproducciones en las plataformas.]{.r-fit-text}
+
+## [4. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.]{.r-fit-text}
 
 ```{r top5}
 
@@ -442,7 +539,7 @@ spotify_top5 %>%
 
 ```
 
-###
+### tempo
 
 ```{r boxplot_bpm(top5), fig.width= 10}
 
@@ -463,7 +560,7 @@ spotify_top5 %>%
 
 ```
 
-###
+### bpm 90-120
 
 ```{r boxplot_bpm_90_120(top5), fig.width=10}
 
@@ -486,9 +583,9 @@ spotify_top5 %>%
 ```
 :::
 
-## 5. ¿Son igual de famosas las canciones en distintas plataformas?.
+## [5. ¿Son igual de famosas las canciones en distintas plataformas?.]{.r-fit-text}
 
-## 6. Estudio de las canciones según la época y características.
+## [6. Estudio de las canciones según la época y características.]{.r-fit-text}
 
 Análisis de las canciones más famosas en los intervalos: 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023
 
