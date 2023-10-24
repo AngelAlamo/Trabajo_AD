@@ -5,6 +5,7 @@ format: revealjs
 editor: visual
 embed-resources: true
 
+
 ---
 ```{r librerias, include = FALSE}
 library(tidyverse)
@@ -122,7 +123,7 @@ spotify2 %>%
 
 ## Gráficos Correl entre variables
 
-```{r gráfico correl energia y acustica, fig.width = 14, fig.height = 6}
+```{r gráfico correl energia y acustica, fig.width = 18, fig.height = 6}
 g_1 = spotify2 %>%
   ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
   geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
@@ -136,19 +137,24 @@ g_111 = spotify2 %>%
   geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
   theme_bw()
 
-g_1 + g_111
+g_2 = spotify2 %>%
+  ggplot(aes(x=`valence_%`,y=`energy_%`)) +
+  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
+  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
+  theme_bw()
+g_1 + g_111 + g_2
 
 #+ 
   #scale_y_continuous(limits = c(0,600))
 ```
 ## Elipses
-```{r gráfico correl energia y acustica(2), fig.width = 14, fig.height = 6}
+```{r gráfico correl energia y acustica(2), fig.width = 18, fig.height = 5.5}
 
 a1 <-spotify2 %>%
   select(`energy_%`,`acousticness_%`)%>%
   na.omit %>% as.matrix()
 
-par(mfrow = c(1, 2))
+par(mfrow = c(1, 3))
 
 
 g_11 <- bvbox(a1,xlab = "energia", 
@@ -166,38 +172,34 @@ g_1111<- bvbox(a2,xlab = "bailable",
            ylab = "positividad",
       pch = 19, cex = 0.75, col = c("red", "blue")[as.integer(spotify2$mode)])
 
+a3 <-spotify2 %>%
+  select(`energy_%`,`valence_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g_11 <- bvbox(a1,xlab = "energia", 
+           ylab = "positividad",
+      pch = 19, cex = 1 ,col = c("red", "blue")[as.integer(spotify2$mode)])
 
 par(mfrow = c(1, 1))
 ```
 :::
 
 
-```{r tabla 10 mas esuchadas}
+
+---
+
+## Top canciones y artistas
+
+```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
 
 a10 <- spotify2 %>%
   arrange(desc(streams)) %>%
   slice_head( n = 10 )
-head(a10)
-```
-
-```{r tabla top 10 cantantes}
-
-
-b10 <- spotify2 %>%
-  arrange(desc(artist_streams)) %>%
-  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
-  slice_head( n = 10 )
-head(b10)
-```
-
----
-:::{.panel-tabset}
-## Top canciones
-
-```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
 
 colores_degradados2 <- rainbow(length(unique(a10$`artist(s)_name`)),start = .7, end = 1)
-a10  %>%
+can= a10  %>%
   ggplot() + 
   geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = `artist(s)_name`)) +
   scale_fill_manual(values = colores_degradados2,breaks = a10$`artist(s)_name`) +
@@ -213,15 +215,19 @@ a10  %>%
 
 ```
 
-## Top artistas
 
 ```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
+
+b10 <- spotify2 %>%
+  arrange(desc(artist_streams)) %>%
+  distinct(`artist(s)_name`, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
+  slice_head( n = 10 )
 
 colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
 
 
 
-b10  %>%
+art = b10  %>%
   
   ggplot() + 
   geom_col(aes(x = reorder(`artist(s)_name`, desc(artist_streams)) , y = artist_streams, fill = `artist(s)_name`)) +
@@ -235,10 +241,12 @@ b10  %>%
         axis.title = element_text(face = "bold"),
         legend.title = element_text(size = 10, face = "bold"))
 
-
+can + art
 
 ```
-:::
+
+
+---
 
 :::{.panel-tabset}
 
