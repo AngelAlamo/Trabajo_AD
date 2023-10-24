@@ -1,12 +1,11 @@
 ---
-title: "Análisis multivariante de las 1000 canciones más escuchadas en Spotify"
+title: "Análisis multivariante de las canciones más escuchadas en Spotify"
 author: "by Óscar Vanrell, Angel Alamo y Juanjo Doblas"
 format: revealjs
 editor: visual
 embed-resources: true
-
-
 ---
+
 ```{r librerias, include = FALSE}
 library(tidyverse)
 library(ggplot2)
@@ -18,37 +17,54 @@ library(MVA)
 library(lessR)
 library(GGally)
 ```
-## 
 
-Estudio detallado del Dataset Spotify 2023, obtenido de la página web Kaggle  [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/).
 
-Estará enfocado en determinar cuáles son las **características comunes entre las canciones más reproducidas**, para ello, intentaremos obtener información de las canciones del dataset a partir de los siguientes puntos:
+## Índice
 
-1. Características comunes entre las 100 canciones más reproducidas.
+1- Dataset, fuente, problema y limpieza de datos
 
-2. Analisis de las reproducciones de la canción según la estación del año.
+2- Variables: descripción
 
-3. Artistas con más canciones en listas de Spotify.
+3- Puntos de interés
 
-4. Top 100 canciones/artistas con mayores reproducciones en las plataformas.
+4- Vector de medias y matriz de correlación
 
-5. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+5- Análisis multivariante
 
-6. ¿Son igual de famosas las canciones en distintas plataformas?. 
+6- Conclusión
 
-7. Estudio de las canciones según el año y características.
 
-## Modificaciones del dataset
 
-```{r dataset,echo=TRUE, warning = FALSE}
+## Fuente y contexto del problema
+
+Dataset: Most Streamed Spotify Songs 2023
+
+Fuente: obtenido de la página web Kaggle,  [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/)
+
+Contexto: canciones anteriores a la fecha 14/7/2023
+
+Objetivo: análisis enfocado en determinar cuáles son las **características comunes entre las canciones más reproducidas**
+
+
+
+## Limpieza de los datos
+
+
+```{r dataset, warning = FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
+
+
+
+breaks_bpm = c("60", "100", "120", "210")
+
+
 
 # Cambiamos el tipo de los valores
 spotify2 <- spotify %>% 
-  mutate(streams = as.numeric(streams), 
-         released_year = as.ordered(released_year),
+  mutate(streams = as.numeric(streams),
          released_month = as.ordered(released_month),
-         released_day = as.ordered(released_day)) %>%
+         released_day = as.ordered(released_day),
+         key = ordered(key, c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))) %>%
   mutate(across(where(is.character), as.factor)) %>% # chr a factor
   
   # Creamos la variable colaboración
@@ -59,10 +75,40 @@ spotify2 <- spotify %>%
   
   # Creamos y añadimos la variable reproducciones por artista y la posicionamos antes de el dia de lanzamiento
   group_by(`artist(s)_name`) %>%
-  #mutate("songs_per_artist" = n()) %>% 
   mutate("artist_streams" = sum(streams)) %>%
   ungroup() %>%
-  #relocate(songs_per_artist, .before = released_year )
+  
+  # Creamos las variables "rango_bpm" ; "tempo"
+  mutate(rango_bpm = cut(bpm, breaks = breaks_bpm, include.lowest = TRUE),
+         tempo = factor(case_when(
+           between(bpm, 60, 100) ~ "Lenta",
+           between(bpm, 101, 120) ~ "Normal",
+           between(bpm, 121, 210) ~ "Rápida"
+         ))) %>% 
+  relocate(rango_bpm, .before = key) %>% 
+  relocate(tempo, .after = rango_bpm) %>% 
+  
+  # Renombramos variables
+  dplyr::rename("dance%" = `danceability_%`,
+         "valence%" = `valence_%`,
+        "energy%" = `energy_%`,
+         "acoustic%" = `acousticness_%`,
+         "instrumental%" = `instrumentalness_%`,
+         "live%" = `liveness_%`,
+         "speech%" = `speechiness_%`,
+         artist = `artist(s)_name`) %>% 
+  
+  
+  # Creamos la variable epoca
+  mutate(epoca = case_when(
+  between(released_year, 1930, 1999) ~ "Epoca_1",
+  between(released_year, 2000, 2015) ~ "Epoca_2",
+  between(released_year, 2016, 2021) ~ "Epoca_3",
+  between(released_year, 2022, 2023) ~ "Epoca_4",
+  )) %>% 
+  relocate(epoca, .after = released_year) %>% 
+  mutate(epoca = ordered(epoca, labels = c("Epoca_1", "Epoca_2", "Epoca_3", "Epoca_4"))) %>% 
+  
   
   # Añadimos la variable estación de lanzamiento
   mutate("released_season" = case_when(
@@ -71,6 +117,9 @@ spotify2 <- spotify %>%
     released_month %in% 6:8 ~ "summer",
     released_month %in% 9:11 ~ "autumn",
     NA ~ NA)) %>% 
+  
+  # Necesario para definir la variable época
+  mutate(released_year = as.ordered(released_year)) %>% 
 
   # Eliminamos ciertas variables
   select(!contains("charts")) %>% 
@@ -79,7 +128,7 @@ spotify2 <- spotify %>%
   relocate(streams, .after = artist_count) %>% 
   relocate(released_day, .before = released_year) %>% 
   relocate(released_month, .before = released_year) %>% 
-  relocate(`artist(s)_name`, .before = track_name) %>%
+  relocate(artist, .before = track_name) %>%
   relocate(released_season, .before = released_year) %>%
   relocate(artist_streams, .before = released_day) %>%
   relocate(collaboration, .before = streams)
@@ -94,18 +143,77 @@ spotify2$released_season <- factor(spotify2$released_season,
 
 ```
 
-## Variables
 
 
-```{r}
+## Variables de interés
+
+```{r explicacion variables}
 spotify2 %>% 
   glimpse
 ```
 
-## Vector de medias
 
 
-## Características canciones
+## Puntos de interés
+
+1.  Correlación entre las variables cuantitativas.
+
+  1.1 Correlación considerando las 100 canciones más reproducidas
+
+2.  Analisis de las reproducciones de la canción según la estación del año.
+
+
+3.  Top 100 canciones con mayores reproducciones en las plataformas.
+
+
+4.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+
+
+5.  ¿Son igual de famosas las canciones en distintas plataformas?.
+
+
+6.  Estudio de las canciones según la época y características.
+
+
+## Vector de medias y matriz de correlación
+
+
+
+## Análisis multivariante
+
+
+## 1.  Correlación entre las variables cuantitativas.
+
+  1.1 Correlación considerando las 100 canciones más reproducidas
+
+
+
+## 2.  Analisis de las reproducciones de la canción según la estación del año.
+
+
+## 3.  Top 100 canciones con mayores reproducciones en las plataformas.
+
+
+## 4.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
+
+
+## 5.  ¿Son igual de famosas las canciones en distintas plataformas?.
+
+
+## 6.  Estudio de las canciones según la época y características.
+
+
+
+
+## Conclusión
+
+
+
+
+
+
+
+## Correlación de las variables
 
 ```{r correlación características, fig.width = 10, fig.height = 6}
 spotify2 %>%
@@ -117,10 +225,9 @@ spotify2 %>%
        )
 ```
 
----
+------------------------------------------------------------------------
 
-:::{.panel-tabset}
-
+::: panel-tabset
 ## Gráficos Correl entre variables
 
 ```{r gráfico correl energia y acustica, fig.width = 18, fig.height = 6}
@@ -142,12 +249,15 @@ g_2 = spotify2 %>%
   geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
   geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
   theme_bw()
+
 g_1 + g_111 + g_2
 
 #+ 
   #scale_y_continuous(limits = c(0,600))
 ```
+
 ## Elipses
+
 ```{r gráfico correl energia y acustica(2), fig.width = 18, fig.height = 5.5}
 
 a1 <-spotify2 %>%
@@ -186,9 +296,7 @@ par(mfrow = c(1, 1))
 ```
 :::
 
-
-
----
+------------------------------------------------------------------------
 
 ## Top canciones y artistas
 
@@ -214,7 +322,6 @@ can= a10  %>%
 
 
 ```
-
 
 ```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
 
@@ -245,14 +352,13 @@ can + art
 
 ```
 
+------------------------------------------------------------------------
 
----
-
-:::{.panel-tabset}
-
+::: panel-tabset
 ## Características 100 canciones
 
 Correlaciones de las características de las 100 canciones más escuchadas en Spotify.
+
 ```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
 
 a100 <- spotify2 %>%
@@ -279,11 +385,10 @@ spotify2 %>%
        cex = 0.5
        )
 ```
-
 :::
 
-
 ## Popularidad por estación del año
+
 ```{r streams segun estacion(1), fig.height=5, fig.width=8}
 
 
@@ -328,9 +433,9 @@ p_2
 
 ```
 
----
+------------------------------------------------------------------------
 
-:::{.panel-tabset}
+::: panel-tabset
 ## Plataformas colaboracion
 
 ```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
@@ -343,8 +448,8 @@ ggpairs(a)
 
 ```
 
-
 ## Plataformas solo
+
 ```{r correlacion por plataformas solo, fig.width = 15, fig.height = 8}
 a <- spotify2 %>%
   filter(collaboration == "solo") %>%
@@ -355,4 +460,5 @@ ggpairs(a)
 
 ```
 :::
+
 ## Conclusión
