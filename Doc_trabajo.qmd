@@ -397,7 +397,7 @@ Aún así, veamos los siguientes gráficos de los pares de variables más correl
 ```{r matriz dispersion, fig.height=20, fig.width=20}
 matriz_dispersion <- spotify2 %>% 
   select(19:23) %>% 
-  ggpairs(aes(color = spotify2$mode, binwidth = 10))
+  ggpairs(aes(color = spotify2$mode))
 
 matriz_dispersion
 ```
@@ -443,7 +443,7 @@ Volvamos a relizar la matriz de gráficos de dispersión de las 100 canciones m�
 ```{r matriz dispersion top100, fig.height=20, fig.width=20}
 matriz_dispersion_100 <- top100canciones %>% 
   select(19:23) %>% 
-  ggpairs(aes(color = top100canciones$mode, bins = 30))
+  ggpairs(aes(color = top100canciones$mode))
 
 par(mfrow = c(1, 2))
 
@@ -452,6 +452,8 @@ matriz_dispersion_100
 
 par(mfrow = c(1, 1))
 ```
+
+Efectivamente, podemos ver una asociación más fuerte en los pares de variables estudiados.
 
 Veamos cuales son las 10 canciones mas escuchadas:
 
