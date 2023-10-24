@@ -17,22 +17,17 @@ En este documento se presentará un estudio detallado del Dataset Spotify 2023, 
 
 Respecto al estudio, estará enfocado en determinar cuáles son las características comunes entre las canciones más reproducidas, para ello, intentaremos obtener información de las canciones del dataset a partir de los siguientes puntos:
 
-
 1.  Correlación entre las variables cuantitativas.
 
-  1.1 Correlación considerando las 100 canciones más reproducidas
+1.1 Correlación considerando las 100 canciones más reproducidas
 
 2.  Analisis de las reproducciones de la canción según la estación del año.
 
-
 3.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades
-
 
 4.  Estudio de las canciones según la época y características.
 
-
 5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
-
 
 ```{r librerias, include = FALSE}
 library(tidyverse)
@@ -815,8 +810,7 @@ spotify_top5 %>%
 
 Tenemos que si restringimos la variables "bpm" entre los valores $90$ y $120$, la distribución de los puntos se mantienen en el mismo rango de valores independientemente del artista.
 
-
-## Propiedades de las canciones
+## Propiedades de las canciones(top 5)
 
 Para comparar estos datos hemos construido un gráfico radar, donde el mínimo es $0%$ y el máximo $100%$. Los valores considerados en cada variable han sido las medias correspondientes a cada artista.
 
@@ -910,7 +904,6 @@ Entre las variables que no han mostrado tener influencia son la cantidad de pala
 
 Para hacer un análisis de las canciones más famosas en los intervalos 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023, primero añadiremos una nueva variable que representará en que época pertenece la canción:
 
-
 ## Key y mode por épocas
 
 Veamos las frecuencias de cada tono y modo por época:
@@ -939,7 +932,6 @@ spotify2 %>%
 
 
 ```
-
 
 Estudiemos ahora con el número de playlists de cada plataforma, a continuación mostraremos un boxplot por cada época:
 
@@ -1117,8 +1109,6 @@ par(mfrow = c(1,1))
 ```
 
 Efectivamente, en general las relaciones de tendencia son las mismas, donde destacan las variables "dance", "valence", "energy" y "acoustic".
-
-
 
 Debido a la gran diferencia de muestras por cada época, no podemos obtener mucha información de los datos. Un aspecto que podemos ver es que ninguna canción de las más reproducidas en Spotify está en $C$ (Do).
 
