@@ -90,6 +90,17 @@ spotify2 <- spotify %>%
   relocate(rango_bpm, .before = key) %>% 
   relocate(tempo, .after = rango_bpm) %>% 
   
+  # Renombramos variables
+  dplyr::rename("dance%" = `danceability_%`,
+         "valence%" = `valence_%`,
+        "energy%" = `energy_%`,
+         "acoustic%" = `acousticness_%`,
+         "instrumental%" = `instrumentalness_%`,
+         "live%" = `liveness_%`,
+         "speech%" = `speechiness_%`,
+         "artist%" = `artist(s)_name`) %>% 
+  
+  
   # Creamos la variable epoca
   mutate(epoca = case_when(
   between(released_year, 1930, 1999) ~ "Epoca_1",
@@ -119,7 +130,7 @@ spotify2 <- spotify %>%
   relocate(streams, .after = artist_count) %>% 
   relocate(released_day, .before = released_year) %>% 
   relocate(released_month, .before = released_year) %>% 
-  relocate(`artist(s)_name`, .before = track_name) %>%
+  relocate("artist%", .before = track_name) %>%
   relocate(released_season, .before = released_year) %>%
   relocate(artist_streams, .before = released_day) %>%
   relocate(collaboration, .before = streams)
@@ -139,10 +150,10 @@ spotify2 %>%
 
 Realicemos una descripción de cada variable:
 
--   \*artist(s)\_name\*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
+-   *artist*: variable cualitativa que muestra el nombre del artista (o artistas) de la canción.
 
 ```{r head artist name}
-head(spotify2$`artist(s)_name`,5)
+head(spotify2$"artist%",5)
 ```
 
 -   *track_name*: variable cualitativa que muestra el nombre de la canción. Mostramos las 5 primeras canciones presentes:
@@ -247,46 +258,46 @@ summary(spotify2$key)
 summary(spotify2$mode)
 ```
 
--   *danceability\_%*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
+-   *dance*: variable cuantitativa que indica en porcentaje qué tan adecuada es la canción para bailar.
 
 ```{r summary danceability}
-summary(spotify2$`danceability_%`)
+summary(spotify2$"dance%")
 ```
 
--   *valence\_%*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
+-   *valence*: variable cuantitativa que indica en porcentaje la positividad del contenido musical de la canción.
 
 ```{r summary valence}
-summary(spotify2$`valence_%`)
+summary(spotify2$"valence%")
 ```
 
--   *energy\_%*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
+-   *energy*: variable cuantitativa que indica en porcentaje el nivel de energía percibido de la canción.
 
 ```{r summary energy}
-summary(spotify2$`energy_%`)
+summary(spotify2$"energy%")
 ```
 
--   *acousticness\_%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
+-   *acoustic%*: variable cuantitativa que indica en porcentaje la cantidad de sonido acústico en la canción.
 
 ```{r summary acousticness}
-summary(spotify2$`acousticness_%`)
+summary(spotify2$"acoustic%")
 ```
 
--   *instrumentalness\_%*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
+-   *instrumental*: variable cuantitativa que indica en porcentaje la cantidad de contenido instrumental en la canción.
 
 ```{r summary instrumentalness}
-summary(spotify2$`instrumentalness_%`)
+summary(spotify2$"instrumental%")
 ```
 
--   *liveness\_%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
+-   *live%*: variable cuantitativa que indica en porcentaje la presencia de elementos de actuación en directo.
 
 ```{r summary liveness}
-summary(spotify2$`liveness_%`)
+summary(spotify2$"live%")
 ```
 
--   *speechiness\_%*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
+-   *speech*: variable cuantitativa que indica en porcentaje la cantidad de palabras habladas en la canción.
 
 ```{r summary speechiness}
-summary(spotify2$`speechiness_%`)
+summary(spotify2$"speech%")
 ```
 
 Una vez vistos el pequeño resumen del dataset y las descripciones de cada variable, procedamos a estudiar las secciones consideradas.
@@ -408,7 +419,7 @@ g_1 <- spotify2 %>%
 ```{r gráfico correl energia y acustica(2), fig.width = 10}
 
 a1 <-spotify2 %>%
-  select(`energy_%`,`acousticness_%`)%>%
+  select("energy%","acoustic%")%>%
   na.omit %>% as.matrix()
 
 
@@ -416,6 +427,7 @@ a1 <-spotify2 %>%
 g_11 = bvbox(a1,xlab = "energia", 
            ylab = "acustica",
       pch = 19, cex = 1.25, ,col = c("red", "blue")[as.integer(spotify2$mode)])
+
 g_1 + g_11
 ```
 
