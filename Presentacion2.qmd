@@ -161,7 +161,61 @@ spotify2 %>%
 
 4.  Estudio de las canciones según la época y características.
 
-5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
+5.  ¿Son igual de famosas las canciones en distintas plataformas?.
+
+## Top canciones y artistas
+
+```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
+
+a10 <- spotify2 %>%
+  arrange(desc(streams)) %>%
+  slice_head( n = 10 )
+
+colores_degradados2 <- rainbow(length(unique(a10$artist)),start = .7, end = 1)
+can= a10  %>%
+  ggplot() + 
+  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = artist)) +
+  scale_fill_manual(values = colores_degradados2,breaks = a10$artist) +
+  
+  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
+  theme_bw() + 
+
+  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+
+```
+
+```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
+
+b10 <- spotify2 %>%
+  arrange(desc(artist_streams)) %>%
+  distinct(artist, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
+  slice_head( n = 10 )
+
+colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
+
+
+
+art = b10  %>%
+  
+  ggplot() + 
+  geom_col(aes(x = reorder(artist, desc(artist_streams)) , y = artist_streams, fill = artist)) +
+
+  scale_fill_manual(values = colores_degradados3, breaks = b10$artist) +
+  
+  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
+  theme_bw() + 
+  #guides(fill = guide_legend(title = "Artista")) +
+  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
+        axis.title = element_text(face = "bold"),
+        legend.title = element_text(size = 10, face = "bold"))
+
+can + art
+
+```
 
 ## [Vector de medias y matriz de correlaciones]{.r-fit-text}
 
@@ -226,7 +280,7 @@ top100canciones %>%
   select(streams,bpm, 20:26) %>%
   na.omit(.) %>% 
   cor(.) %>% 
-  corPlot(., cex = 0.5)
+  corPlot(., cex = 0.5, main = "Correlación Entre Características de las 100", xsrt = -30)
 ```
 
 ### Matriz de dispersión
@@ -237,7 +291,51 @@ top100canciones %>%
 ```
 :::
 
-## Contrastes de hipótesis
+
+## [Contrastes de hipótesis]{.r-fit-text}
+
+::: panel-tabset
+
+## Bailable y positividad
+ X e Y son  `dance%` y `valence%`  respectivamente:
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}>0
+\end{cases}$$
+
+
+```{r}
+
+cor.test(spotify2$`dance%`, spotify2$`valence%` , alternative="greater")
+
+```
+
+## Energía y positividad
+ X e Y son  `energy%` y `valence%`  respectivamente:
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}>0
+\end{cases}$$
+```{r}
+
+cor.test(spotify2$`energy%`, spotify2$`valence%`, alternative="greater")
+
+```
+
+## Energía y acústica
+
+ X e Y son `energy%` y `acoustic%`  respectivamente:
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}<0
+\end{cases}$$
+```{r}
+
+cor.test(spotify2$`energy%`, spotify2$`acoustic%`, alternative="less")
+
+```
+
+:::
 
 ## [2. Analisis de las reproducciones de la canción según la estación del año.]{.r-fit-text}
 
@@ -290,9 +388,9 @@ spotify2 %>%
 ```
 :::
 
-## [3. Top 100 canciones con mayores reproducciones en las plataformas.]{.r-fit-text}
 
-## [4. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.]{.r-fit-text}
+
+## [3. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.]{.r-fit-text}
 
 ```{r top5}
 
@@ -583,9 +681,9 @@ spotify_top5 %>%
 ```
 :::
 
-## [5. ¿Son igual de famosas las canciones en distintas plataformas?.]{.r-fit-text}
 
-## [6. Estudio de las canciones según la época y características.]{.r-fit-text}
+
+## [4. Estudio de las canciones según la época y características.]{.r-fit-text}
 
 Análisis de las canciones más famosas en los intervalos: 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023
 
@@ -785,260 +883,19 @@ par(mfrow = c(1,1))
 
 ```
 
+
+## [5. ¿Son igual de famosas las canciones en distintas plataformas?.]{.r-fit-text}
+
+```{r correlacion por plataformas,fig.height=8, fig.width=15}
+
+
+matriz_dispersionn <- spotify2 %>% 
+  select(collaboration, streams, matches("in_\\w*_")) %>% 
+  ggpairs(aes(color = spotify2$collaboration))
+
+matriz_dispersionn
+
+```
+
 ## Conclusión
 
-## Correlación de las variables
-
-```{r correlación características, fig.width = 10, fig.height = 6}
-spotify2 %>%
-  select(streams,bpm, contains("%")) %>%
-  na.omit(.) %>% 
-  cor(.) %>% 
-  corPlot(.,
-       cex = 0.5
-       )
-```
-
-------------------------------------------------------------------------
-
-::: panel-tabset
-## Gráficos Correl entre variables
-
-```{r gráfico correl energia y acustica, fig.width = 18, fig.height = 6}
-g_1 = spotify2 %>%
-  ggplot(aes(x=`energy%`,y=`acoustic%`)) +
-  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
-
-  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
-  theme_bw()
-
-g_111 = spotify2 %>%
-  ggplot(aes(x=`dance%`,y=`valence%`)) +
-  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
-  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
-  theme_bw()
-
-g_2 = spotify2 %>%
-  ggplot(aes(x=`valence%`,y=`energy%`)) +
-  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
-  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
-  theme_bw()
-
-g_1 + g_111 + g_2
-
-#+ 
-  #scale_y_continuous(limits = c(0,600))
-```
-
-## Elipses
-
-```{r gráfico correl energia y acustica(2), fig.width = 18, fig.height = 5.5}
-
-a1 <-spotify2 %>%
-  select(`energy%`,`acoustic%`)%>%
-  na.omit %>% as.matrix()
-
-par(mfrow = c(1, 3))
-
-
-g_11 <- bvbox(a1,xlab = "energia", 
-           ylab = "acustica",
-      pch = 19, cex = 0.75 ,col = c("red", "blue")[as.integer(spotify2$mode)])
-
-
-a2 <-spotify2 %>%
-  select(`dance%`,`valence%`)%>%
-  na.omit %>% as.matrix()
-
-
-
-g_1111<- bvbox(a2,xlab = "bailable", 
-           ylab = "positividad",
-      pch = 19, cex = 0.75, col = c("red", "blue")[as.integer(spotify2$mode)])
-
-a3 <-spotify2 %>%
-  select(`energy%`,`valence%`)%>%
-  na.omit %>% as.matrix()
-
-
-
-g_11 <- bvbox(a1,xlab = "energia", 
-           ylab = "positividad",
-      pch = 19, cex = 1 ,col = c("red", "blue")[as.integer(spotify2$mode)])
-
-par(mfrow = c(1, 1))
-```
-:::
-
-------------------------------------------------------------------------
-
-## Top canciones y artistas
-
-```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6}
-
-a10 <- spotify2 %>%
-  arrange(desc(streams)) %>%
-  slice_head( n = 10 )
-
-colores_degradados2 <- rainbow(length(unique(a10$artist)),start = .7, end = 1)
-can= a10  %>%
-  ggplot() + 
-  geom_col(aes(x = reorder(track_name, desc(streams )) , y = streams, fill = artist)) +
-  scale_fill_manual(values = colores_degradados2,breaks = a10$artist) +
-  
-  labs(title = "Top 10 canciones mas reproducidas en Spotify",x = "Canción", y = "Reproducciones ") +
-  theme_bw() + 
-
-  theme(axis.text = element_text(face = "bold",angle = 25, vjust = 0.5, hjust = 1),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-
-
-```
-
-```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
-
-b10 <- spotify2 %>%
-  arrange(desc(artist_streams)) %>%
-  distinct(artist, .keep_all = TRUE) %>% #elimina las filas duplicadas en funcion de la columna artist_name
-  slice_head( n = 10 )
-
-colores_degradados3 <- colorRampPalette(c("cyan3", "yellow2"))(length(unique(b10$track_name)))
-
-
-
-art = b10  %>%
-  
-  ggplot() + 
-  geom_col(aes(x = reorder(artist, desc(artist_streams)) , y = artist_streams, fill = artist)) +
-
-  scale_fill_manual(values = colores_degradados3, breaks = b10$artist) +
-  
-  labs(title = "Top 10 artistas con mas reproducciones en Spotify",x = "Artista", y = "Reproducciones ") +
-  theme_bw() + 
-  #guides(fill = guide_legend(title = "Artista")) +
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-can + art
-
-```
-
-------------------------------------------------------------------------
-
-::: panel-tabset
-## Características 100 canciones
-
-Correlaciones de las características de las 100 canciones más escuchadas en Spotify.
-
-```{r correlacion del top100 ,fig.width = 10, fig.height = 6}
-
-a100 <- spotify2 %>%
-  slice_max(streams, n = 100)
-
-a100 %>%
-  select(streams, bpm, contains("%")) %>%
-  na.omit(.) %>% 
-  cor(.) %>% 
-  corPlot(.,
-       cex = 0.5,
-       main = "Correlación top 100 canciones"
-       )
-
-```
-
-## Todas las canciones
-
-```{r correlación características2, fig.width = 10, fig.height = 6}
-spotify2 %>%
-  select(streams,bpm, contains("%")) %>%
-  na.omit(.) %>% 
-  cor(.) %>% 
-  corPlot(.,
-       cex = 0.5,
-       main = "Correlación todas las canciones"
-       )
-
-
-```
-:::
-
-## Popularidad por estación del año
-
-```{r streams segun estacion(1), fig.height=5, fig.width=8}
-
-
-
-colores_clase = c("brown", "green", "yellow", "blue")
-
-p_1 = spotify2 %>% 
-  drop_na(released_season, streams) %>% 
-  group_by(released_season) %>% 
-  ggplot() + 
-  geom_boxplot(aes(x = released_season, y = streams, color = released_season)) +
-  stat_summary(aes(x = released_season, y = streams), fun = mean, geom = "point", shape = 19, 
-               size = 1, color = "black") +
-  labs(x = "Estación de lanzamiento", y = "Reproducciones en Spotify") +
-  theme_bw() + 
-  guides(fill = guide_legend(title = "Estaciones del año")) +
-  theme(axis.text = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold")) + 
-  scale_color_manual(values = colores_clase)
-  
-```
-
-```{r  streams segun estacion(2), fig.width = 10}
-
-colores_degradados <- colorRampPalette(c("cyan3", "purple"))(length(unique(spotify2$released_month)))
-
-p_2 = spotify2 %>%
-  ggplot() +
-  geom_point(aes(x = released_day, y = streams, color = released_month), na.rm = TRUE) +
-  facet_grid(.~released_season) +
-  labs(x = "Día del més", y = "Streams") +
-  guides(fill = guide_legend(title = "Season")) +
-  theme_bw() +
-  theme(axis.title = element_text(face = "bold"),
-        legend.title = element_text(size = 10, face = "bold"))
-
-  #scale_color_manual(values = colores_degradados)
-
-p_1 +
-p_2
-
-```
-
-------------------------------------------------------------------------
-
-::: panel-tabset
-## Plataformas colaboracion
-
-```{r correlacion por plataformas, fig.width = 15, fig.height = 8}
-a <- spotify2 %>%
-  filter(collaboration == "collaboration") %>%
-  select(collaboration, streams, matches("in_\\w*_")) %>%
-  na.omit(.)
-
-ggpairs(a)
-
-
-```
-
-## Plataformas solo
-
-```{r correlacion por plataformas solo, fig.width = 15, fig.height = 8}
-a <- spotify2 %>%
-  filter(collaboration == "solo") %>%
-  select(collaboration,streams, matches("in_\\w*_")) %>%
-  na.omit(.)
-
-ggpairs(a)
-
-
-```
-:::
-
-## Conclusión
