@@ -1,6 +1,6 @@
 ---
 title: "Análisis multivariante de las canciones más escuchadas en Spotify"
-author: "by Óscar Vanrell, Angel Alamo y Juanjo Doblas"
+author: "by Óscar Vanrell, Ángel Álamo y Juanjo Doblas"
 format: revealjs
 editor: visual
 embed-resources: true
@@ -37,11 +37,15 @@ library(GGally)
 
 ## Fuente y contexto del problema
 
+
 Dataset: Most Streamed Spotify Songs 2023
+
 
 Fuente: obtenido de la página web Kaggle,  [enlace](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023/)
 
+
 Contexto: canciones anteriores a la fecha 14/7/2023
+
 
 Objetivo: análisis enfocado en determinar cuáles son las **características comunes entre las canciones más reproducidas**
 
@@ -147,7 +151,7 @@ spotify2$released_season <- factor(spotify2$released_season,
 
 ## Variables de interés
 
-```{r explicacion variables}
+```{r explicacion variables, warning = FALSE}
 spotify2 %>% 
   glimpse
 ```
@@ -156,9 +160,11 @@ spotify2 %>%
 
 ## Puntos de interés
 
+
 1.  Correlación entre las variables cuantitativas.
 
   1.1 Correlación considerando las 100 canciones más reproducidas
+
 
 2.  Analisis de las reproducciones de la canción según la estación del año.
 
@@ -170,7 +176,6 @@ spotify2 %>%
 
 
 5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
-
 
 
 
