@@ -5,6 +5,7 @@ format: revealjs
 editor: visual
 embed-resources: true
 
+
 ---
 ```{r librerias, include = FALSE}
 library(tidyverse)
@@ -122,7 +123,7 @@ spotify2 %>%
 
 ## Gráficos Correl entre variables
 
-```{r gráfico correl energia y acustica, fig.width = 14, fig.height = 6}
+```{r gráfico correl energia y acustica, fig.width = 18, fig.height = 6}
 g_1 = spotify2 %>%
   ggplot(aes(x=`energy_%`,y=`acousticness_%`)) +
   geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) +
@@ -136,19 +137,24 @@ g_111 = spotify2 %>%
   geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
   theme_bw()
 
-g_1 + g_111
+g_2 = spotify2 %>%
+  ggplot(aes(x=`valence_%`,y=`energy_%`)) +
+  geom_point(size = 2,  na.rm = TRUE,col = c("red", "blue")[as.integer(spotify2$mode)]) + 
+  geom_smooth(method = "lm",col="yellow",lwd=1, alpha = 0.2) + 
+  theme_bw()
+g_1 + g_111 + g_2
 
 #+ 
   #scale_y_continuous(limits = c(0,600))
 ```
 ## Elipses
-```{r gráfico correl energia y acustica(2), fig.width = 14, fig.height = 6}
+```{r gráfico correl energia y acustica(2), fig.width = 18, fig.height = 5.5}
 
 a1 <-spotify2 %>%
   select(`energy_%`,`acousticness_%`)%>%
   na.omit %>% as.matrix()
 
-par(mfrow = c(1, 2))
+par(mfrow = c(1, 3))
 
 
 g_11 <- bvbox(a1,xlab = "energia", 
@@ -166,6 +172,15 @@ g_1111<- bvbox(a2,xlab = "bailable",
            ylab = "positividad",
       pch = 19, cex = 0.75, col = c("red", "blue")[as.integer(spotify2$mode)])
 
+a3 <-spotify2 %>%
+  select(`energy_%`,`valence_%`)%>%
+  na.omit %>% as.matrix()
+
+
+
+g_11 <- bvbox(a1,xlab = "energia", 
+           ylab = "positividad",
+      pch = 19, cex = 1 ,col = c("red", "blue")[as.integer(spotify2$mode)])
 
 par(mfrow = c(1, 1))
 ```
