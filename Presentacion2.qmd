@@ -47,7 +47,7 @@ Objetivo: análisis enfocado en determinar cuáles son las **características co
 
 ## Limpieza de los datos
 
-```{r dataset, warning = FALSE}
+```{r dataset, warning = FALSE, echo = TRUE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
 
@@ -149,10 +149,11 @@ spotify2 %>%
 
 ## Puntos de interés
 
-1. Correlación entre las variables cuantitativas.
-  1.1 Correlación considerando las 100 canciones más reproducidas
+1.  Características comunes de las canciones
 
-2.  Analisis de las reproducciones de la canción según la estación del año.
+    -   Considerando las 100 canciones más reproducidas
+
+2.  Análisis de las reproducciones de la canción según la estación del año.
 
 3.  Top 5 artistas con más canciones en el dataset y comparación de las propiedades
 
@@ -160,23 +161,35 @@ spotify2 %>%
 
 5.  ¿Son igual de famosas las canciones en distintas plataformas?. Correlaciones.
 
-
 ## Vector de medias y matriz de correlación
 
+```{r vector medias}
+v_medias <- spotify2 %>% 
+  summarise(across(where(is.numeric), ~mean(., na.rm = TRUE)))
+
+v_medias
+```
+
+
+```{r matriz correlaciones, fig.width = 15, fig.height = 8}
+spotify2 %>%
+  select(where(is.numeric)) %>%
+  na.omit(.) %>% 
+  cor(.) %>% 
+  corPlot(.,
+       cex = 1 , main = "Correlación Entre Variables Cuantitativas"
+       )
+```
 
 ## Análisis multivariante
-
 
 ## 1. Correlación entre las variables cuantitativas.
 
 1.1 Correlación considerando las 100 canciones más reproducidas
 
-
 ## 2. Analisis de las reproducciones de la canción según la estación del año.
 
-
 ## 3. Top 100 canciones con mayores reproducciones en las plataformas.
-
 
 ## 4. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.
 
@@ -198,7 +211,7 @@ Estudio dividido en dos partes:
 
 -   Propiedades de las canciones: valence, energy...
 
-##
+## 
 
 ### Key
 
@@ -244,7 +257,6 @@ spotify_top5 %>%
 
 ```
 
-
 ```{r tibble tono_mas_usado(top5)}
 
 spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E", "C# - F - G", "G", "A"))
@@ -252,7 +264,7 @@ spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E",
 spotify_top5_key
 ```
 
-##
+## 
 
 ### Key y mode
 
@@ -284,7 +296,6 @@ spotify_top5 %>%
   
 
 ```
-
 
 ```{r, Mayor_menor}
 
@@ -323,10 +334,9 @@ major_minor
 
 ```
 
-##
+## 
 
 ::: panel-tabset
-
 ### Streams
 
 ```{r, streams por key, fig.width = 10}
@@ -363,7 +373,6 @@ spotify_top5 %>%
 
 ```
 
-
 ### Media(tonos)
 
 Media muestral por tonos
@@ -399,11 +408,9 @@ cbind(spotify_top5_artists, Max = vec_max, Max_key = vec_max_key)
 ```
 :::
 
-
 ## 
 
 ::: panel-tabset
-
 ### bpm
 
 ```{r grafico_top5(bpm), fig.width= 10}
@@ -475,17 +482,13 @@ spotify_top5 %>%
 ```
 :::
 
-
-
 ## 5. ¿Son igual de famosas las canciones en distintas plataformas?.
-
-
 
 ## 6. Estudio de las canciones según la época y características.
 
 Análisis de las canciones más famosas en los intervalos: 1930-1999 ; 2000-2015 ; 2016-2021 ; 2022-2023
 
-##
+## 
 
 ### Key y mode
 
@@ -578,7 +581,7 @@ ggboxplot(spotify2, x = "epoca" ,y = "in_deezer_playlists",
 ```
 :::
 
-##
+## 
 
 ### Propiedades de las canciones
 
