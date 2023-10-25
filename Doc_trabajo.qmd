@@ -1251,7 +1251,7 @@ cor.test(spotify2$in_spotify_playlists, spotify2$in_apple_playlists , alternativ
 
 ```
 
-Efectivamente encontramos un p-valor $<0.00000000000000022$ que es muy pequeño y nos permite rechazar la hipotesis nula de que la correlación es 0 y aceptar la altenrativa de que la correlación es positiva y asegurar, con un 95% de probabilidad, que ésta es superior a $0.6806651$.
+Efectivamente encontramos un p-valor $<0.00000000000000022$ que es muy pequeño y nos permite rechazar la hipotesis nula de que la correlación es 0 y aceptar la altenrativa de que la correlación es positiva y asegurar, con un 95% de probabilidad, que ésta es superior a $0.7082772 $.
 
 ## Conclusión
 

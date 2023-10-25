@@ -986,6 +986,24 @@ matriz_dispersionn
 
 ```
 
+
+## Contraste de hipótesis
+
+### Número de listas de Spotify y Apple Music
+
+X e Y son in_spotify_playlists y in_apple_playlists respectivamente:
+$$\begin{cases}
+H_{0}: &  \rho_{X,Y}=0\\
+H_{1}: & \rho_{X,Y}>0
+\end{cases}$$
+
+```{r}
+
+cor.test(spotify2$in_spotify_playlists, spotify2$in_apple_playlists , alternative="greater")
+
+```
+
+
 ## Conclusiones
 
 No hay una fórmula mágica
