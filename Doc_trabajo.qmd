@@ -1267,10 +1267,12 @@ Nuestras conclusiones de cada punto de interés estudiado son:
 
 4.  A partir de la variable épocas hemos podido ver que no parece haber diferencia significativa en cuanto al número de playlists de ninguna plataforma, aunque sí se muestra un rango de valores muy distinto. Por otro lado, el ggradar nos hace ver que las proporciones de las propiedades de las canciones son las mismas, es decir que lo único que cambia de la música parece ser la forma de expresarlo.
 
-5.  
+5.  Como era de esperar, hemos comprobado que existe una gran relación entre el número de listas de reproducción en las que podemos encontrar las canciones respecto a la plataforma donde las escuchamos, comprobando que si una canción aparece en muchas listas de una plataforma, también aparece en muchas listas en otra plataforma.
 
-Para terminar, si eres un novato en la música y buscas una manera de que tu canción sea un exito, haz una colaboración con Bad Bunny o Taylor Swift.
+
 
 ## Repositorio de GitHub
 
 Para ver el código del estudio, visite [este repositorio de GitHub.](https://github.com/AngelAlamo/Trabajo_AD)
+
+
