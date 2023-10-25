@@ -163,7 +163,13 @@ spotify2 %>%
 
 5.  ¿Son igual de famosas las canciones en distintas plataformas?.
 
-## Top canciones y artistas
+## [Top canciones y artistas]{.r-fit-text}
+
+::: panel-tabset
+
+### Canciones
+
+
 
 ```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6, warning = FALSE}
 a10 <- spotify2 %>%
@@ -189,8 +195,10 @@ a10_gg =  a10 %>%
   theme(plot.title=element_text(size=20, face='bold', color='purple'))
 
 
-
+a10_gg
 ```
+
+### Artistas
 
 ```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
 
@@ -222,16 +230,12 @@ b10_gg = b10 %>%
         legend.title = element_text(size = 10, face = "bold")) +
   theme(plot.title=element_text(size=20, face='bold', color='cyan3'), plot.subtitle = element_text(size=20, face='bold'))
 
-
-
-```
-
-```{r gráficos de interés,fig.width = 15, fig.height = 10, warning = FALSE}
-
-a10_gg + b10_gg
+b10_gg
 
 ```
 
+
+:::
 ## [Vector de medias y matriz de correlaciones]{.r-fit-text}
 
 ::: panel-tabset
@@ -996,7 +1000,7 @@ Conclusiones por puntos
 2.  
 
     -   Estación no es determinante
-    -   Casos enero y febrero
+    -   Casos enero y septiembre
     
 
 3.  
@@ -1011,7 +1015,13 @@ Conclusiones por puntos
     -   No hay diferencia en el número de playlists
     -   Sí la hay en el rango
     -   Mismas propiedades
-    
 5.
 
-Bad Bunny o Taylor Swift
+    -   Gran relación entre el número de playlists por plataformas
+    
+
+    
+
+## Conclusiones   
+
+![Bad Bunny o Taylor Swift](bbts.png){width = "100%"}
