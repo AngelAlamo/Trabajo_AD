@@ -596,6 +596,12 @@ spotify_top5 = spotify2 %>%
 spotify_top5 %>% 
   glimpse
 
+
+# Dataset Artistas top5
+spotify_top5_artists = spotify_top5 %>% 
+  group_by(artist) %>% 
+  summarise()
+
 ```
 
 Para comparar las canciones por artista, lo haremos en dos partes: primero las consideraremos a nivel teórico, es decir, se describirán los datos a partir de la tonalidad, escala utilizada y su bpm ; posteriormente se analizarán las canciones según sus propiedades a partir de las variables "bailabilidad", "valencia", "energía", "acústico", "instrumental", "vivacidad", "habla".
@@ -632,9 +638,34 @@ spotify_top5 %>%
        subtitle = "Top 5 artistas") +
   theme(plot.title=element_text(size=20, face='bold', color='blue'), plot.subtitle = element_text(size=20, face='bold'))
 
+
+
 ```
 
-A partir de estas realizaciones no parece haber alguna distribución común de las canciones según la tonalidad. En cada artista se pude ver como una preferencia de tonalidad: en las canciones de Taylor Swift, presenta mayor número de canciones en las tonalidades "F", "G", "G#", en cambio, las canciones de The Weeknd hay mayor concentración en las tonalidades "A", "A#". Por otro lado, artistas como Harry Styles tiene una concentración más uniforme.
+A partir de estas realizaciones no parece haber alguna distribución común de las canciones según la tonalidad. En cada artista se puede ver como una preferencia de tonalidad: en las canciones de Taylor Swift, presenta mayor número de canciones en las tonalidades "F", "G", "G#", en cambio, las canciones de The Weeknd hay mayor concentración en las tonalidades "A", "A#". Por otro lado, artistas como Harry Styles tiene una concentración más uniforme.
+
+Si nos quedamos con la tonalidad más usada por artista:
+
+```{r, tonalidad dominante por artista}
+
+spotify_top5 %>% 
+  drop_na(key) %>% 
+  group_by(artist, key) %>% 
+  summarise(Frecuencia = n(), .groups = "drop") %>% 
+  pivot_wider(names_from = key,
+              values_from = Frecuencia)
+
+
+```
+
+```{r tibble tono_mas_usado(top5)}
+
+spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E", "C# - F - G", "G", "A"))
+
+spotify_top5_key
+```
+
+Vemos que todos los artistas tienen una tonalidad principal distinta, excepto SZA ya que el número de canciones por tonalidad está más balanceado.
 
 ## Key y mode
 
@@ -693,10 +724,7 @@ Frecuencia = spotify_top5 %>%
   summarise(Frecuencia = n(), .groups = "drop") %>% 
   pull(Frecuencia)
 
-# Dataset Artistas top5
-spotify_top5_artists = spotify_top5 %>% 
-  group_by(artist) %>% 
-  summarise()
+
 
 # Dataset con Artistas top5 - Frecuencia - Modo_dominante
 major_minor = cbind(spotify_top5_artists, Major_Minor = f(Frecuencia)) %>% 
@@ -710,28 +738,7 @@ major_minor
 
 ```
 
-Vemos que el único artista que ha utilizado más la escala menor es "The Weeknd". Por otro lado, destaca que ninguna canción de los artistas presenta la tonalidad $C$ (Do) en modo Mayor, que es la escala más conocida, aunque también básica en cuanto a novedad. Veamos ahora cual es la tonalidad más usada por artista:
-
-```{r, tonalidad dominante por artista}
-
-spotify_top5 %>% 
-  drop_na(key) %>% 
-  group_by(artist, key) %>% 
-  summarise(Frecuencia = n(), .groups = "drop") %>% 
-  pivot_wider(names_from = key,
-              values_from = Frecuencia)
-
-
-```
-
-```{r tibble tono_mas_usado(top5)}
-
-spotify_top5_key = cbind(spotify_top5_artists, Tono_mas_usado = c("C# - F", "E", "C# - F - G", "G", "A"))
-
-spotify_top5_key
-```
-
-Vemos que todos los artistas tienen una tonalidad principal distinta, excepto SZA ya que el número de canciones por tonalidad está más balanceado.
+Vemos que el único artista que ha utilizado más la escala menor es "The Weeknd". Por otro lado, destaca que ninguna canción de los artistas presenta la tonalidad $C$ (Do) en modo Mayor, que es la escala más conocida, aunque también básica en cuanto a novedad.
 
 ## Streams
 
@@ -808,6 +815,9 @@ cbind(spotify_top5_artists, Max = vec_max, Max_key = vec_max_key)
 
 
 ```
+
+Tenemos que, exceptuando al artista The Weeknd, las tonalidades con media de reproducciones más alta son notas consecutivas ("G", "G#", "A"), que puede ser una coincidencia o bien una preferencia de los oyentes: cada nota tiene asociada una frecuencia, por ejemplo la nota La4 (en inglés"A4") tiene la frecuencia de $440$Hz, entonces estas frecuencias asociadas al reposo de la canción (la tonalidad se podría describir como una estabilidad/equilibrio en la melodía) pueden ser más agradables a nivel auditivo.
+
 
 ## bpm
 
