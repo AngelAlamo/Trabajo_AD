@@ -65,6 +65,7 @@ spotify2 <- spotify %>%
          released_day = as.ordered(released_day),
          key = factor(key, levels = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))) %>%
   mutate(across(where(is.character), as.factor)) %>% # chr a factor
+  mutate(artist_count = as.factor(artist_count)) %>%
   
   # Creamos la variable colaboración
   mutate("collaboration" = case_when(
