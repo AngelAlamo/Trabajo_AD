@@ -37,6 +37,9 @@ library(corrplot)
 
 6- Conclusión
 
+
+
+
 ## Fuente y contexto del problema
 
 Dataset: Most Streamed Spotify Songs 2023
@@ -46,6 +49,10 @@ Fuente: obtenido de la página web Kaggle, [enlace](https://www.kaggle.com/datas
 Contexto: canciones anteriores a la fecha 14/7/2023
 
 Objetivo: análisis enfocado en determinar cuáles son los **factores que presentan las canciones más reproducidas**
+
+
+![Spotify logo](bbts1.png)
+
 
 ## Limpieza de los datos
 
@@ -1043,4 +1050,4 @@ Conclusiones por puntos
 
 ## Conclusiones   
 
-![Bad Bunny o Taylor Swift](bbts.png){width = "100%"}
+![Bad Bunny o Taylor Swift](bbts.png)
