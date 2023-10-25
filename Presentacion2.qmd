@@ -165,7 +165,6 @@ spotify2 %>%
 
 ## Top canciones y artistas
 
-
 ```{r gráfico top 10 canciones, fig.width = 12, fig.height = 6, warning = FALSE}
 a10 <- spotify2 %>%
   arrange(desc(streams)) %>%
@@ -192,7 +191,6 @@ a10_gg =  a10 %>%
 
 
 ```
-
 
 ```{r gráfico top 10 cantantes, fig.width = 12, fig.height = 6}
 
@@ -228,14 +226,11 @@ b10_gg = b10 %>%
 
 ```
 
-
 ```{r gráficos de interés,fig.width = 15, fig.height = 10, warning = FALSE}
 
 a10_gg + b10_gg
 
 ```
-
-
 
 ## [Vector de medias y matriz de correlaciones]{.r-fit-text}
 
@@ -279,7 +274,7 @@ spotify2 %>%
 ```{r matriz dispersion, fig.height=8, fig.width=15}
 matriz_dispersion <- spotify2 %>% 
   select(19:23) %>% 
-  ggpairs(aes(color = spotify2$mode))
+  ggpairs(aes(color = spotify2$mode, alpha = 0.75))
 
 matriz_dispersion
 ```
@@ -308,19 +303,15 @@ top100canciones %>%
 ```{r matriz dispersion top100, fig.height=8, fig.width=15}
 top100canciones %>% 
   select(19:23) %>% 
-  ggpairs(aes(color = top100canciones$mode))
+  ggpairs(aes(color = top100canciones$mode, alpha = 0.75))
 ```
 :::
-
-
 
 ```{r}
 ## [Contrastes de hipótesis]{.r-fit-text}
 ```
 
-
 ## Contrastes de hipótesis
-
 
 ### Bailable y positividad
 
@@ -335,7 +326,7 @@ cor.test(spotify2$`dance%`, spotify2$`valence%` , alternative="greater")
 
 ```
 
-##
+## 
 
 ### Energía y positividad
 
@@ -350,7 +341,7 @@ cor.test(spotify2$`energy%`, spotify2$`valence%`, alternative="greater")
 
 ```
 
-##
+## 
 
 ### Energía y acústica
 
@@ -365,22 +356,12 @@ cor.test(spotify2$`energy%`, spotify2$`acoustic%`, alternative="less")
 
 ```
 
-
-
 ## 2. Analisis de las reproducciones según la estación del año.
-
-
-
-```{r}
-## [2. Analisis de las reproducciones de la canción según la estación del año.]{.r-fit-text}
-```
-
-
 
 ::: panel-tabset
 ### Estaciones
 
-```{r streams segun estacion, fig.height=5, fig.width=8}
+```{r streams segun estacion, fig.height=5, fig.width=8, fig.align='center'}
 colores_clase = c("#83CC3A", "#EDED2A", "#B66F01", "#A0EAF1")
 
 spotify2 %>% 
@@ -428,17 +409,9 @@ spotify2 %>%
 ```
 :::
 
-
 ## 3. Top 5 artistas con más canciones(dataset) y comparación.
 
-
-```{r}
-## [3. Top 5 artistas con más canciones en el dataset y comparación de las propiedades de las canciones.]{.r-fit-text}
-```
-
-
 ```{r top5}
-
 # Dataset Artistas top5 - Num_canciones
 top5 = spotify2 %>% 
   group_by(artist) %>% 
@@ -646,7 +619,6 @@ for(k in 1:5){
 tabla_media_key
 ```
 
-
 Tonalidad con media muestral de streams más alta.
 
 ```{r media streams(key)}
@@ -784,27 +756,22 @@ ggradar(spotify_top5_perc,
 
 ```
 
-
 ## 4. Estudio de las canciones según la época y características.
-
 
 ```{r}
 ## [4. Estudio de las canciones según la época y características.]{.r-fit-text}
 
 ```
 
-
-
 Análisis de las canciones más famosas según la época:
 
-- Época 1: 1933 - 1999
+-   Época 1: 1933 - 1999
 
-- Época 2: 2000 - 2015
+-   Época 2: 2000 - 2015
 
-- Época 3: 2016 - 2021
+-   Época 3: 2016 - 2021
 
-- Época 4: 2022 - 2023
-
+-   Época 4: 2022 - 2023
 
 ## 
 
@@ -1004,39 +971,47 @@ par(mfrow = c(1,1))
 
 ## 5. ¿Son igual de famosas las canciones en distintas plataformas?.
 
-
-```{r}
-## [5. ¿Son igual de famosas las canciones en distintas plataformas?.]{.r-fit-text}
-```
-
-
-
 ```{r correlacion por plataformas,fig.height=8, fig.width=15}
 
 
 matriz_dispersionn <- spotify2 %>% 
   select(collaboration, streams, matches("in_\\w*_")) %>% 
-  ggpairs(aes(color = spotify2$collaboration))
+  ggpairs(aes(color = spotify2$collaboration, alpha = 0.75))
 
 matriz_dispersionn
 
 ```
 
-## Conclusión
+## Conclusiones
 
+No hay una fórmula mágica
 
+Conclusiones por puntos
 
+1.  
 
+    -   Asociaciónes positivas: `energy%`\~`valence%` y `dance%`\~`valence%`
+    -   Asociación negativa: `energy%`\~`acoustic%`
 
+2.  
 
+    -   Estación no es determinante
+    -   Casos enero y febrero
+    
 
+3.  
 
+    -   Tonalidad no es relevante
+    -   Modo: mayor
+    
+## Conclusiones
+    
+4.  
 
+    -   No hay diferencia en el número de playlists
+    -   Sí la hay en el rango
+    -   Mismas propiedades
+    
+5.
 
-
-
-
-
-
-
-
+Bad Bunny o Taylor Swift
