@@ -1,0 +1,141 @@
+---
+title: "Bondad de ajuste multivariante"
+format: html
+editor: visual
+---
+
+
+# Contrastes de normalidad multivariante
+
+
+Consideremos nuestras variables cuantitativas del dataset "spotify-2023".
+
+```{r librerias, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(ggcorrplot)
+library(psych)
+library(patchwork)
+library(MVA)
+library(lessR)
+library(GGally)
+library(ggradar)
+library(ggpubr)
+library(corrplot)
+library(mvnormtest)
+```
+
+
+```{r dataset, warning = FALSE}
+spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
+
+
+
+breaks_bpm = c("60", "100", "120", "210")
+
+
+
+# Cambiamos el tipo de los valores
+spotify2 <- spotify %>% 
+  mutate(streams = as.numeric(streams),
+         released_month = as.ordered(released_month),
+         released_day = as.ordered(released_day),
+         key = factor(key, levels = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))) %>%
+  mutate(across(where(is.character), as.factor)) %>% # chr a factor
+  mutate(artist_count = as.factor(artist_count)) %>% 
+  
+  # Creamos la variable colaboración
+  mutate("collaboration" = case_when(
+    artist_count == 1 ~ "solo",
+    artist_count %in% 2:10 ~ "collaboration", 
+    NA ~ NA)) %>%
+  
+  # Creamos y añadimos la variable reproducciones por artista y la posicionamos antes de el dia de lanzamiento
+  group_by(`artist(s)_name`) %>%
+  #mutate("songs_per_artist" = n()) %>% 
+  mutate("artist_streams" = sum(streams)) %>%
+  ungroup() %>%
+  #relocate(songs_per_artist, .before = released_year )
+  
+  # Creamos las variables "rango_bpm" ; "tempo"
+  mutate(rango_bpm = cut(bpm, breaks = breaks_bpm, include.lowest = TRUE),
+         tempo = factor(case_when(
+           between(bpm, 60, 100) ~ "Lenta",
+           between(bpm, 101, 120) ~ "Normal",
+           between(bpm, 121, 210) ~ "Rápida"
+         ))) %>% 
+  relocate(rango_bpm, .before = key) %>% 
+  relocate(tempo, .after = rango_bpm) %>% 
+  
+  # Renombramos variables
+  dplyr::rename("dance%" = `danceability_%`,
+         "valence%" = `valence_%`,
+        "energy%" = `energy_%`,
+         "acoustic%" = `acousticness_%`,
+         "instrumental%" = `instrumentalness_%`,
+         "live%" = `liveness_%`,
+         "speech%" = `speechiness_%`,
+         artist = `artist(s)_name`) %>% 
+  
+  
+  # Creamos la variable epoca
+  mutate(epoca = case_when(
+  between(released_year, 1930, 1999) ~ "Epoca_1",
+  between(released_year, 2000, 2015) ~ "Epoca_2",
+  between(released_year, 2016, 2021) ~ "Epoca_3",
+  between(released_year, 2022, 2023) ~ "Epoca_4",
+  )) %>% 
+  relocate(epoca, .after = released_year) %>% 
+  mutate(epoca = ordered(epoca, labels = c("Epoca_1", "Epoca_2", "Epoca_3", "Epoca_4"))) %>% 
+  
+  
+  # Añadimos la variable estación de lanzamiento
+  mutate("released_season" = case_when(
+    released_month %in% c(12, 1, 2) ~ "winter",
+    released_month %in% 3:5 ~ "spring",
+    released_month %in% 6:8 ~ "summer",
+    released_month %in% 9:11 ~ "autumn",
+    NA ~ NA)) %>% 
+  
+  # Necesario para definir la variable época
+  mutate(released_year = as.ordered(released_year)) %>% 
+
+  # Eliminamos ciertas variables
+  select(!contains("charts")) %>% 
+  
+  # Recolocamos las variables
+  relocate(streams, .after = artist_count) %>% 
+  relocate(released_day, .before = released_year) %>% 
+  relocate(released_month, .before = released_year) %>% 
+  relocate(artist, .before = track_name) %>%
+  relocate(released_season, .before = released_year) %>%
+  relocate(artist_streams, .before = released_day) %>%
+  relocate(collaboration, .before = streams)
+
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
+
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
+
+spotify_cuant = spotify2 %>% 
+  select(is.double) %>% 
+  na.omit()
+
+
+
+spotify_cuant %>% 
+  glimpse
+
+```
+
+Utilizaremos el test de Shapiro-Wilk para comprobar la normalidad multivariante:
+
+```{r}
+mshapiro.test(t(as.matrix(spotify_cuant)))
+```
+Obtenemos un p-valor $p < 2.2 × 10^{-16}$, por lo tanto tenemos evidencias significativas de que las variables cuantitativas de nuestro dataset no siguen una distribución normal multivariante.
+
+
