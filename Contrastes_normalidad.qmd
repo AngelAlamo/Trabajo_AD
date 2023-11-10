@@ -210,3 +210,4 @@ Efectivamente obtenemos un p-valor $p < 2.2 × 10^{-16}$, por lo tanto tenemos e
 
 
 
+Para ver el código del estudio, visite [este repositorio de GitHub.](https://github.com/AngelAlamo/Trabajo_AD)
