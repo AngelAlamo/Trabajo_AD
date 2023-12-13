@@ -16,6 +16,8 @@ En este documento vamos a realizar un análisis con Clustering de las variables 
 library(tidyverse)
 library(ggplot2)
 library("factoextra")
+library("ggfortify")
+library(cluster)
 ```
 
 ```{r dataset var cuant, warning=FALSE}
@@ -163,13 +165,116 @@ fviz_eig(sp_perc_cen_acp, addlabels = TRUE, ylim = c(0,100))
 
 ```
 
+Si consideramos dos componentes principales, la representación de los datos es la siguiente:
 
 
+```{r}
+autoplot(sp_perc_cen_acp, data = sp_perc_cen,
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+```
 
 
-Lo dividiremos en dos partes, donde realizaremos las dos técnicas aprendidas en clase: el método de *k-means* y el método de clustering jerárquico aglomerativo.
+Lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método de *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo.
+
+
+Debido a la gran cantidad de observaciones que tenemos en el dataset y para una mayor facilidad a la hora de construir los $\textit{clusters}$, consideraremos las $50$ primeras canciones (observaciones):
+
+```{r}
+# 50 primeras observaciones
+
+spotify_perc_50 = spotify_perc %>% 
+  slice_head(n = 50)
+
+spotify_perc_50 %>% 
+  glimpse
+
+```
+
+
 
 ## Método k-means
+
+
+
+
+
+
+
+## Método k-medoids
+
+Recordemos que para aplicar el método *k-medoids*, como en el método *k-means*, se necesitan $k$ elementos para iniciar el algoritmo. Primero, necesitamos encontrar la $k$ óptima, para esto, utilizaremos la función `r fviz_nbclust()`, con la distancia euclidea y la de Manhattan.
+
+
+```{r}
+# Euclidea
+fviz_nbclust(x = spotify_perc_50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc_50, method = "euclidean")) +
+  labs(title = "Número de clusters óptimos", subtitle = "Distancia Euclidea", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
+  theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15))
+```
+
+
+```{r}
+# Manhattan
+fviz_nbclust(x = spotify_perc_50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc_50, method = "manhattan")) +
+  labs(title = "Número de clusters óptimos", subtitle = "Distancia Manhattan", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
+  theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15))
+```
+
+Como podemos ver, con las dos distancias obtenemos el mismo patrón. A partir de estos gráficos podríamos deducir que a partir de $k = 5$ clusters la suma total de los cuadrados internos empieza a estabilizarse, por eso consideraremos este valor de $k$. Para aplicar el método PAM, usaremos la distancia euclidea. Veamos con la función de R `r pam` los medoides:
+
+
+```{r}
+set.seed(2218)
+
+spotify_pam <- pam(x = spotify_perc_50, k = 5, metric = "euclidean")
+
+spotify_pam$id.med
+```
+
+Estos son los id de las observaciones representantes de los grupos, veamos los valores que toman estas observaciones.
+
+
+```{r}
+id_medoids = c(18,27,34,36,37)
+
+spotify_perc_50 %>% 
+  filter(rownames(.) %in% id_medoids) %>%
+  mutate(id = id_medoids) %>% 
+  relocate(id, .before = "dance%") %>% 
+  show()
+
+```
+Veamos las agrupaciones en el plano a partir de las componentes principales, solo considerando dos dimensiones.
+
+```{r}
+# Para resaltar los medoides
+medoids <- prcomp(spotify_perc_50, scale = TRUE)$x
+
+# Se seleccionan únicamente las proyecciones de las observaciones que son medoids
+
+medoids <- medoids[id_medoids, c("PC1", "PC2")]
+
+
+medoids <- as.data.frame(medoids)
+# Se emplean los mismos nombres que en el objeto ggplot
+colnames(medoids) <- c("x", "y")
+
+
+fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", repel = TRUE) +
+  theme_bw() +
+  labs(title = "Representación con Componentes Principales") +
+  theme(legend.position = "none") +
+  
+  #Medoides 
+  geom_point(data = medoids, color = "#EE0606", size = 2)
+
+```
+
+
+
+
+
 
 ## Método de clustering jerárquico aglomerativo
 
