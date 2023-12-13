@@ -1,5 +1,5 @@
 ---
-title: "Análisis de clustering"
+title: "Análisis con clustering"
 format: html
 editor: visual
 author: 
@@ -10,14 +10,15 @@ execute:
   echo: false
 ---
 
-En este documento vamos a realizar un análisis de Clustering de las variables cuantitativas de nuestro dataset. Primero, cargamos las librerías que utilizaremos y el tibble que contenga las variables cuantitativas.
+En este documento vamos a realizar un análisis con Clustering de las variables cuantitativas de nuestro dataset Spotify 2023. Primero, cargamos las librerías que utilizaremos y el tibble que contenga las variables cuantitativas.
 
-```{r librerias}
+```{r librerias, warning=FALSE, message=FALSE}
 library(tidyverse)
+library(ggplot2)
+library("factoextra")
 ```
 
-
-```{r dataset var cuant}
+```{r dataset var cuant, warning=FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
 breaks_bpm = c("60", "100", "120", "210")
@@ -112,14 +113,75 @@ spotify_cuant %>%
   glimpse
 ```
 
+Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de mesura y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+
+
 ```{r}
-# No entiendo el warning que sale
+spotify_perc = spotify_cuant %>% 
+  select(contains("%"))
+
+spotify_perc
 ```
+
+Así pues, nuestra tabla de datos es la siguiente (con los datos ya centrados):
+
+```{r}
+
+# Número de filas
+n = nrow(spotify_perc)
+
+# Matriz de centrado
+Hn = diag(n) - 1/n
+
+# Datos centrados
+sp_perc_cen = as_tibble(Hn %*% as.matrix(spotify_perc))
+
+sp_perc_cen %>% 
+  glimpse
+```
+
+El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función `r prcomp`:
+
+```{r}
+
+sp_perc_cen_acp = prcomp(sp_perc_cen, scale = FALSE)
+
+
+```
+
+Veamos cuántas dimensiones debemos considerar para la representación, para ello veamos la variabilidad que explica cada valor propio junto a la variabilidad acumulativa.
+
+```{r}
+vaps_perc = get_eigenvalue(sp_perc_cen_acp)
+vaps_perc
+```
+
+Con $2$ dimensiones, el porcentaje que explican de varianza es de aproximadamente un $68.94%$, en cambio, si tomamos $3$ dimensiones, este aumenta, explicando aproximadamente un $79.06%$. Tenemos dos opciones: consideramos $2$ dimensiones, para obtener una representación más sencilla de los datos pero con una explicación de la varianza menos acertada y por lo tanto menos precisa; consideramos $3$ dimensiones, así la representación es más ajustada y consigue explicar más varianza, pero con una representación más tediosa. Usemos el diagrama de valores propios para determinar el número de componentes principales.
+
+```{r}
+fviz_eig(sp_perc_cen_acp, addlabels = TRUE, ylim = c(0,100))
+
+```
+
+
+
+
 
 Lo dividiremos en dos partes, donde realizaremos las dos técnicas aprendidas en clase: el método de *k-means* y el método de clustering jerárquico aglomerativo.
 
 ## Método k-means
 
-
-
 ## Método de clustering jerárquico aglomerativo
+
+
+
+
+
+
+
+
+
+
+
+
+
