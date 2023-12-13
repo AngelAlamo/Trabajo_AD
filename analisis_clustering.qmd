@@ -1,39 +1,26 @@
 ---
-title: "Bondad de ajuste multivariante"
+title: "Análisis de clustering"
 format: html
 editor: visual
-execute: 
+author: 
+  - name: Ángel Álamo
+  - name: Juanjo Doblas
+  - name: Óscar Vanrell 
+execute:
   echo: false
 ---
 
-# Contrastes de normalidad multivariante
+En este documento vamos a realizar un análisis de Clustering de las variables cuantitativas de nuestro dataset. Primero, cargamos las librerías que utilizaremos y el tibble que contenga las variables cuantitativas.
 
-Consideremos nuestras variables cuantitativas del dataset "spotify-2023".
-
-```{r librerias, include = FALSE}
+```{r librerias}
 library(tidyverse)
-library(ggplot2)
-library(patchwork)
-library(ggcorrplot)
-library(psych)
-library(patchwork)
-library(MVA)
-library(lessR)
-library(GGally)
-library(ggradar)
-library(ggpubr)
-library(corrplot)
-library(mvnormtest)
 ```
 
-```{r dataset, warning = FALSE}
+
+```{r dataset var cuant}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
-
-
 breaks_bpm = c("60", "100", "120", "210")
-
-
 
 # Cambiamos el tipo de los valores
 spotify2 <- spotify %>% 
@@ -77,7 +64,6 @@ spotify2 <- spotify %>%
          "speech%" = `speechiness_%`,
          artist = `artist(s)_name`) %>% 
   
-  
   # Creamos la variable epoca
   mutate(epoca = case_when(
   between(released_year, 1930, 1999) ~ "Epoca_1",
@@ -87,7 +73,6 @@ spotify2 <- spotify %>%
   )) %>% 
   relocate(epoca, .after = released_year) %>% 
   mutate(epoca = ordered(epoca, labels = c("Epoca_1", "Epoca_2", "Epoca_3", "Epoca_4"))) %>% 
-  
   
   # Añadimos la variable estación de lanzamiento
   mutate("released_season" = case_when(
@@ -101,7 +86,7 @@ spotify2 <- spotify %>%
   mutate(released_year = as.ordered(released_year)) %>% 
 
   # Eliminamos ciertas variables
-  select(!contains("charts")) %>% 
+  dplyr::select(!contains("charts")) %>% 
   
   # Recolocamos las variables
   relocate(streams, .after = artist_count) %>% 
@@ -120,99 +105,21 @@ spotify2$released_season <- factor(spotify2$released_season,
                                    levels = orden_estaciones)
 
 spotify_cuant = spotify2 %>% 
-  select(is.double) %>% 
+  dplyr::select(is.double) %>% 
   na.omit()
-
-
 
 spotify_cuant %>% 
   glimpse
-
-```
-
-Utilizaremos el test de Shapiro-Wilk para comprobar la normalidad multivariante:
-
-```{r}
-mshapiro.test(t(spotify_cuant))
-```
-
-Obtenemos un p-valor $p < 2.2 × 10^{-16}$, por lo tanto tenemos evidencias significativas de que las variables cuantitativas de nuestro dataset no siguen una distribución normal multivariante.
-
-Para completarlo más, vamos a intentar comprobarlo también como en el ejemplo hecho en clase, para ello calculamos el vector de medias y la matriz de covarianzas para conseguir la distancia de Mahalanobis:
-
-```{r}
-
-x1 <- spotify_cuant
-m1 <- colMeans(x1)
-S1 <- cov(x1)
-
-
-x1
-m1
-S1
-
-
 ```
 
 ```{r}
-#solve(S1) 
-#al hacer el solve me da error y por ello no puedo calcular la distancia siguiente
+# No entiendo el warning que sale
 ```
 
-Nos encontramos ante un error al intentar calcular la inversa de la matriz. Procedemos a calcular el número de condición de la matriz de covarianzas de nuestros datos mediante la función `kappa()`del paquete `MASS`:
+Lo dividiremos en dos partes, donde realizaremos las dos técnicas aprendidas en clase: el método de *k-means* y el método de clustering jerárquico aglomerativo.
 
-```{r}
-library(MASS)
-kappa(S1)
-```
-
-Vemos que tenemos un número de condición de la matriz de covarianzas extremadamente grande, lo que nos indica que la mattriz está mal condicionada y que pequeños errores en los datos pueden llevar a grandes errores en la solución.
-
-Finalmente vamos a optar por suprimir algunas de las variables que teniamos en cuenta y vamos a realizar el estudio únicamente sobre las variables cuantitativas que nos describen las características de las canciones en porcentajes:
-
-```{r}
-
-x2 <- spotify_cuant %>%
-  dplyr::select(contains("%")) %>%
-  na.omit(.)
-m2 <- colMeans(x2)
-S2 <- cov(x2)
+## Método k-means
 
 
-x2
-m2
-S2
 
-
-```
-
-```{r}
-kappa(S2)
-solve(S2)
-```
-
-En este caso obtenemos un número de condición más cercano a 1 y vemos que R no nos pone ningun problema para calcular la inversa de la matriz de covarianzas de estas variables asi que procedemos a calcular la distancia de Mahalanobis:
-
-```{r}
-d2<- apply(x2, MARGIN = 1, function(x2)
-  + t(x2 - m2) %*% solve(S2) %*% (x2 - m2))
-
-plot(sort(d2))
-```
-
-```{r}
-plot(qchisq((1:nrow(x2) - 1/2) / nrow(x2), df = 3), sort(d2), 
-xlab = expression(paste("Cuantiles de la ", chi[3]^2)),
-ylab="Distancias ordenadas")
-abline(a=0,b=1)
-```
-
-Ya sin siquiera hacer el test de `mshapiro.test()`podemos confirmar que los datos no seguirán una distribución normal multivariante. Comprobemoslo igualmente:
-
-```{r}
-mshapiro.test(t(x2))
-```
-
-Efectivamente obtenemos un p-valor $p < 2.2 × 10^{-16}$, por lo tanto tenemos evidencias significativas de que ni las variables cuantitativas ni el subconjunto de las variables sobre las características de las canciones de nuestro dataset siguen una distribución normal multivariante.
-
-Para ver el código del estudio, visite [este repositorio de GitHub.](https://github.com/AngelAlamo/Trabajo_AD)
+## Método de clustering jerárquico aglomerativo
