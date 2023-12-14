@@ -10,7 +10,9 @@ execute:
   echo: false
 ---
 
-En este documento vamos a realizar un análisis con Clustering de las variables cuantitativas de nuestro dataset Spotify 2023. Primero, cargamos las librerías que utilizaremos y el tibble que contenga las variables cuantitativas.
+En este documento vamos a realizar un análisis con Clustering de las variables cuantitativas de nuestro dataset Spotify 2023. Lo haremos de dos formas: a partir de las 50 canciones más escuchadas, viendo si los métodos de clustering las agrupan según su género musical; y a partir de las canciones de los 5 artistas más escuchados, comprobando si los métodos las agrupan según su artista.
+
+Primero, cargamos las librerías que utilizaremos y nuestro dataset.
 
 ```{r librerias, warning=FALSE, message=FALSE}
 library(tidyverse)
@@ -106,120 +108,39 @@ orden_estaciones <- c("spring", "summer", "autumn", "winter")
 # Cambia el orden de las estaciones del año
 spotify2$released_season <- factor(spotify2$released_season,
                                    levels = orden_estaciones)
-
-spotify_cuant = spotify2 %>% 
-  dplyr::select(is.double) %>% 
-  na.omit()
-
-spotify_cuant %>% 
-  glimpse
 ```
 
-Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+Cada análisis de clustering lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método de *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo, que a su vez realizaremos también tres veces con los siguientes métodos de distancias entre clusters: enlace completo, enlace medio y Ward.
 
+El motivo del reducir el número de canciones y realizar los dos estudios comentados anteriormente es la gran cantidad de observaciones que tenemos, ya que al representar estos datos, no se puede observar con claridad los resultados del clustering.
 
-```{r}
-spotify_perc = spotify_cuant %>% 
-  select(contains("%"))
+## Top 50
 
-spotify_perc
-```
+En este apartado haremos el estudio de clustering de nuestros datos tomando las 50 canciones más escuchadas hasta verano de 2023 en Spotify. Como hemos comentado antes, el objetivo es ver si se agrupan según el género musical de la canción.
 
-Así pues, nuestra tabla de datos es la siguiente (con los datos ya centrados):
+Tomamos los datos de las 50 canciones más escuchadas y después (con ayuda de internet) creamos una nueva variable que nos da el género musical de estas 50 canciones:
 
-```{r}
-
-# Número de filas
-n = nrow(spotify_perc)
-
-# Matriz de centrado
-Hn = diag(n) - 1/n
-
-# Datos centrados
-sp_perc_cen = as_tibble(Hn %*% as.matrix(spotify_perc))
-
-sp_perc_cen %>% 
-  glimpse
-```
-
-El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función `prcomp`:
-
-```{r}
-
-sp_perc_cen_acp = prcomp(sp_perc_cen, scale = FALSE)
-
-
-```
-
-Veamos cuántas dimensiones debemos considerar para la representación, para ello veamos la variabilidad que explica cada valor propio junto a la variabilidad acumulativa.
-
-```{r}
-vaps_perc = get_eigenvalue(sp_perc_cen_acp)
-vaps_perc
-```
-
-Con $2$ dimensiones, el porcentaje que explican de varianza es de aproximadamente un $68.94%$, en cambio, si tomamos $3$ dimensiones, este aumenta, explicando aproximadamente un $79.06%$. Tenemos dos opciones: consideramos $2$ dimensiones, para obtener una representación más sencilla de los datos pero con una explicación de la varianza menos acertada y por lo tanto menos precisa; consideramos $3$ dimensiones, así la representación es más ajustada y consigue explicar más varianza, pero con una representación más tediosa. Usemos el diagrama de valores propios para determinar el número de componentes principales.
-
-```{r}
-fviz_eig(sp_perc_cen_acp, addlabels = TRUE, ylim = c(0,100))
-
-```
-
-Si consideramos dos componentes principales, la representación de los datos es la siguiente:
-
-
-```{r}
-autoplot(sp_perc_cen_acp, data = sp_perc_cen,
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-```
-
-
-Lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método de *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo.
-
-
-# Top 50
-
-
-
-Debido al gran número de observaciones que tenemos, en este apartado haremos un breve Análisis de Componentes Principales y el estudio de clustering de nuestros datos tomando las 50 canciones más escuchadas hasta verano de 2023 en Spotify. A partir de estos clusterings, obtenidos a partir de las variables cuantitativas porcentuales, obtenemos una buena distinción de las observaciones. Nuestros grupos de referencia será el género musical de la canción.
-
-
-Por lo tanto, tomamos los datos de las 50 canciones más escuchadas y después (con ayuda de internet) creamos una nueva variable que nos da el género musical de estas 50 canciones:
-
-
-
-```{r top 50 dataset}
+```{r top 50 canciones con genero, warning=FALSE}
 top50canciones <- spotify2 %>% 
   slice_max(streams, n = 50)
-```
 
+genero <- c("pop", "dancehall", "pop", "electronic", "hip-hop", "dancehall",
+            "pop", "popRock", "electronic", "pop", "pop", "popRock", "pop", "pop",
+            "pop", "pop", "pop", "dancehall", "hip-hop", "popRock", "pop", "pop",
+            "electronic", "rock", "popRock", "popRock", "dancehall", "pop", "pop",
+            "popRock", "pop", "dancehall", "hip-hop", "hip-hop", "hip-hop",
+            "dancehall", "popRock", "pop", "popRock", "hip-hop", "hip-hop", "pop",
+            "rock", "dancehall", "hip-hop", "rock", "dancehall", "popRock",
+            "rock", "hip-hop")
 
-
-```{r generos}
-Genero <- c("pop", "dancehall", "pop", "electronic", "hip-hop", "dancehall", "pop", "popRock", "electronic", "pop",
- "pop", "popRock", "pop", "pop", "pop", "pop", "pop", "dancehall", "hip-hop", "popRock",
- "pop", "pop", "electronic", "rock", "popRock", "popRock", "dancehall", "pop", "pop", "popRock", 
-"pop", "dancehall", "hip-hop", "hip-hop", "hip-hop", "dancehall", "popRock", "pop", "popRock", "hip-hop",
-"hip-hop", "pop", "rock", "dancehall"," hip-hop", "rock", "dancehall", "popRock", "rock", "hip-hop")
-```
-
-
-
-```{r top50 dataset +, warning=FALSE}
 top50canciones <- top50canciones %>%
-  add_column(genero = Genero) %>%
+  add_column(genero = genero) %>%
   relocate(genero, .after = track_name) %>%
   glimpse
 ```
 
 
 -   *genero*: variable cualitativa que muestra el género musical de la canción.
-
-
-```{r head artist name}
-head(top50canciones$genero,5)
-```
 
 Tenemos 6 posibles valores en la variable *género*:
 
@@ -235,25 +156,22 @@ Tenemos 6 posibles valores en la variable *género*:
 
 - Hip-hop
 
-## (Mini) ACP
+### Representación en el plano principal
 
-```{r}
-spotify_cuant50 = top50canciones %>% 
-  select(is.double,) %>% 
+Primero, representaremos estas 50 canciones en el plano formado por las dos primeras componentes principales con el objetivo de ver inicialmente la distribución de estas canciones. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); y, por otra parte, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+
+```{r var porcentajes top50}
+spotify_perc50 <- top50canciones %>% 
+  select(contains("%")) %>% 
   na.omit()
 
-spotify_perc50 = spotify_cuant50 %>% 
-  select(contains("%"))
-
-spotify_perc50
+spotify_perc50 %>%
+  glimpse
 ```
 
-Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+Ahora, centraremos estos datos y obtenemos lo siguiente:
 
-Nuestra tabla de datos es la siguiente (con los datos ya centrados):
-
-```{r}
-
+```{r top50 var porcentaje centrados, warning=FALSE}
 # Número de filas
 m = nrow(spotify_perc50)
 
@@ -263,85 +181,56 @@ Hm = diag(m) - 1/m
 # Datos centrados
 sp_perc_cen50 = as_tibble(Hm %*% as.matrix(spotify_perc50))
 
-sp_perc_cen50 %>% 
-  add_column(genero = Genero) %>%
+sp_perc_cen50 <- sp_perc_cen50 %>% 
+  add_column(genero = genero, track_name = top50canciones$track_name) %>%
+  relocate(genero, .before = `dance%`) %>%
+  relocate(track_name, .before = genero) %>%
   glimpse
 ```
 
+Calculamos las componentes principales con la función ` prcomp`:
 
-El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función ` prcomp`:
-
-
-```{r}
-
-sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,1:7], scale = FALSE)
-
-
+```{r acp top50}
+sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,3:9], scale = FALSE)
 ```
 
-Veamos cuántas dimensiones debemos considerar para la representación, para ello veamos la variabilidad que explica cada valor propio junto a la variabilidad acumulativa.
+Veamos la representación de los puntos en el plano:
 
-```{r}
-vaps_perc50 = get_eigenvalue(sp_perc_cen_acp50)
-vaps_perc50
-```
-
-Con $2$ dimensiones, el porcentaje que explican de varianza es de aproximadamente un $80.9%$, en cambio, si tomamos $3$ dimensiones, este aumenta, explicando aproximadamente un $88.8%$. Tenemos dos opciones: consideramos $2$ dimensiones, para obtener una representación más sencilla de los datos pero con una explicación de la varianza menos acertada y por lo tanto menos precisa; consideramos $3$ dimensiones, así la representación es más ajustada y consigue explicar más varianza, pero con una representación más tediosa. Usemos el diagrama de valores propios para determinar el número de componentes principales.
-
-```{r}
-fviz_eig(sp_perc_cen_acp50, addlabels = TRUE, ylim = c(0,100)) +
-  labs(title = "Varianza explicada por cada valor propio", x = "Porcentaje de la varianza explicada", y = "Dimensiones") +
-  theme(plot.title = element_text(size = 15))
-
-```
-
-A partir de este gráfico podemmos ver que con dos componentes principales es suficiente para la representación de los datos. Veamos los puntos en el plano:
-
-
-```{r}
-autoplot(sp_perc_cen_acp50, data = sp_perc_cen50, #colour = 'genero', #no entiendo pk no me pinta por colores y asi tener las agrupaciones autenticas
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3) +
+```{r representacion}
+fviz_pca_ind(sp_perc_cen_acp50, col.ind = sp_perc_cen50$genero, repel = TRUE,
+             label = FALSE, title = "Gráfico de las top50 canciones con ACP",
+             subtitle = "Variables porcentuales") + 
   theme_bw() +
-  labs(title = "Gráfico de las top50 canciones con ACP", subtitle = "Variables porcentuales") +
-  theme(plot.title = element_text(size = 15), plot.subtitle = element_text(size = 12))
-  
+  theme(plot.title = element_text(size = 15),
+        plot.subtitle = element_text(size = 12))
+
+# Por que me salen figuritas, solo quiero puntos de colores :(
 ```
 
-A partir de esta representación se podrían deducir tres grupos, diferenciados a partir de los valores que toman en la primera componente principal, de manera que estas canciones se separarían según el nivel de acústico, la energía, o el balance de estas variables. Veamos esto con más detalle a partir de los métodos de cluster.
-
-
-
-Lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo.
-
+Pasemos ahora a realizar las tres técnicas aprendidas en clase: el método *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo, con los siguientes métodos de distancias entre clusters: enlace completo, enlace medio y Ward.
 
 ### Método k-means
 
-```{r}
-#datos <- scale(spotify_perc50)
-#ahora no se si es necesatio escalar los datos para el kmeans en nuestro caso, si lo hago el clustering queda peor
-
-#### No hace falta centrar ni escalar (creo)
-
-```
-
-
+Para el método de *k-means* hay que elegir previamente el número de clusters que deseamos. En nuestro caso, como el objetivo es agrupar por género, decidimos que el número de clusters sea 6. Los centros dejaremos que se seleccionen de manera aleatoria.
 
 ```{r}
 set.seed(123)
 
-km_clusters <- kmeans(x = spotify_perc50, centers = 6, nstart = 25)
+km_clusters <- kmeans(x = sp_perc_cen50[,3:9], centers = 6, nstart = 25)
 km_clusters
 ```
 
 ```{r}
-fviz_cluster(object = km_clusters, data = spotify_perc50, show.clust.cent = TRUE,
- ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
-theme_bw() +
-theme(legend.position = "none")
+fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) + 
+  theme_bw() +
+  theme(legend.position = "none")
 
 ```
 
+```{r comentarios 1}
+# Faltaría poner una tabla que compare los clusters y el género
+```
 
 
 
@@ -390,9 +279,7 @@ spotify_perc50 %>%
 
 ```
 
-
 Veamos las agrupaciones en el plano a partir de las componentes principales, solo considerando dos dimensiones.
-
 
 ```{r}
 # Para resaltar los medoides
@@ -419,11 +306,7 @@ fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", r
 
 ```
 
-
 Las agrupaciones que se obtienen
-
-
-
 
 ### Método de clustering jerárquico aglomerativo
 
@@ -439,6 +322,7 @@ Las agrupaciones que se obtienen
 Vamos a realizar el mismo estudio ahora considerando otros datos y agrupaciones. En el trabajo anterior estudiamos cuales eran los 5 artistas con más reproducciones en Spotify y las características de sus canciones asi que nos parece interesante estudiar si tomando los datos de estas canciones y sus características encontraremos una agrupación en cuanto al artista que las compone.
 
 Asi consideramos los datos de los 5 artistas con más reproducciones: Taylor Swift, The Weeknd, Bad Bunny, SZA y Harry Styles 
+
 ```{r dataset_top3, warning= FALSE}
 
 # Dataset completo con solo los artistas top 5
@@ -458,6 +342,7 @@ spotify_top5_artists = spotify_top5 %>%
 ```
 
 Otra vez solo consideramos las variables cuantitativas porcentuales que representan las características de cada canción
+
 ```{r}
 spotify_cuant5 = spotify_top5 %>% 
   select(is.double) %>% 
@@ -470,7 +355,6 @@ spotify_perc5
 ```
 
 Empecemos el estudio del clustering con los diferentes métodos que conocemos:
-
 
 ### Método k-means.
 
