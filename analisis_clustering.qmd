@@ -115,7 +115,7 @@ spotify_cuant %>%
   glimpse
 ```
 
-Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de mesura y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
 
 
 ```{r}
@@ -142,7 +142,7 @@ sp_perc_cen %>%
   glimpse
 ```
 
-El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función `r prcomp`:
+El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función `prcomp`:
 
 ```{r}
 
@@ -178,37 +178,171 @@ autoplot(sp_perc_cen_acp, data = sp_perc_cen,
 Lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método de *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo.
 
 
-Debido a la gran cantidad de observaciones que tenemos en el dataset y para una mayor facilidad a la hora de construir los $\textit{clusters}$, consideraremos las $50$ primeras canciones (observaciones):
+
+
+
+
+
+
+
+
+
+##Top 50
+
+Debido al gran número de muestras que tenemos, en este apartado haremos el estudio de clustering de nuestros datos tomando las 50 canciones más escuchadas hasta verano de 2023 en Spotify y veremos si agrupando gracias a las características de las diferentes canciones (obtenidas gracias a las variables de porcentajes finales) conseguimos diferenciación entre estos 6 géneros musicales.
+
+Para ello tomamos los datos de las 50 canciones más escuchadas y con ayuda de internet, hemos creado una nueva variable que nos da el género musical de estas 50 canciones:
 
 ```{r}
-# 50 primeras observaciones
+top50canciones <- spotify2 %>% 
+  slice_max(streams, n = 50)
+```
 
-spotify_perc_50 = spotify_perc %>% 
-  slice_head(n = 50)
 
-spotify_perc_50 %>% 
+```{r}
+Genero <- c("pop", "dancehall", "pop", "electronic", "hip-hop", "dancehall", "pop", "popRock", "electronic", "pop",
+ "pop", "popRock", "pop", "pop", "pop", "pop", "pop", "dancehall", "hip-hop", "popRock",
+ "pop", "pop", "electronic", "rock", "popRock", "popRock", "dancehall", "pop", "pop", "popRock", 
+"pop", "dancehall", "hip-hop", "hip-hop", "hip-hop", "dancehall", "popRock", "pop", "popRock", "hip-hop",
+"hip-hop", "pop", "rock", "dancehall"," hip-hop", "rock", "dancehall", "popRock", "rock", "hip-hop")
+```
+
+
+```{r}
+top50canciones <- top50canciones %>%
+  add_column(genero = Genero) %>%
+  relocate(genero, .after = track_name) %>%
   glimpse
+```
+-   *genero*: variable cualitativa que muestra el género musical de la canción.
+
+```{r head artist name}
+head(top50canciones$genero,5)
+```
+Tenemos 6 categorias:
+
+- Pop
+
+- Dancehall: incluye las canciones pop/dance y hemos añadido la única que pertenece al género reguetón/trap
+
+- PopRock
+
+- Rock
+
+- Electronic
+
+- Hip-hop
+
+En este documento haremos el estudio de clustering de nuestros datos tomando las 50 canciones más escuchadas hasta verano de 2023 en Spotify y veremos si agrupando gracias a las características de las diferentes canciones (obtenidas gracias a las variables de porcentajes finales) conseguimos diferenciación entre estos 6 géneros musicales.
+
+```{r}
+spotify_cuant50 = top50canciones %>% 
+  select(is.double,) %>% 
+  na.omit()
+
+spotify_perc50 = spotify_cuant50 %>% 
+  select(contains("%"))
+
+spotify_perc50
+```
+
+(Lo mismo que hace Angel arriba pero para el top 50 que es lo que vamos a trabajar)
+
+Primero haremos un Análisis de Componentes Principales sobre estos datos para poder tener una representación de estos puntos. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad de estas variables, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); en este caso, al ser estas observaciones las canciones más escuchadas, tiene más sentido representar estas canciones según las propiedades de estas.
+
+Así pues, nuestra tabla de datos es la siguiente (con los datos ya centrados):
+
+```{r}
+
+# Número de filas
+m = nrow(spotify_perc50)
+
+# Matriz de centrado
+Hm = diag(m) - 1/m
+
+# Datos centrados
+sp_perc_cen50 = as_tibble(Hm %*% as.matrix(spotify_perc50))
+
+sp_perc_cen50 %>% 
+  add_column(genero = Genero) %>%
+  glimpse
+```
+El análisis de la matriz de covarianzas y la matriz de correlación se hizo anteriormente, pasamos a calcular las componentes principales con la función ` prcomp`:
+
+```{r}
+
+sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,1:7], scale = FALSE)
+
+
+```
+
+Veamos cuántas dimensiones debemos considerar para la representación, para ello veamos la variabilidad que explica cada valor propio junto a la variabilidad acumulativa.
+
+```{r}
+vaps_perc50 = get_eigenvalue(sp_perc_cen_acp50)
+vaps_perc50
+```
+
+Con $2$ dimensiones, el porcentaje que explican de varianza es de aproximadamente un $80.9%$, en cambio, si tomamos $3$ dimensiones, este aumenta, explicando aproximadamente un $88.8%$. Tenemos dos opciones: consideramos $2$ dimensiones, para obtener una representación más sencilla de los datos pero con una explicación de la varianza menos acertada y por lo tanto menos precisa; consideramos $3$ dimensiones, así la representación es más ajustada y consigue explicar más varianza, pero con una representación más tediosa. Usemos el diagrama de valores propios para determinar el número de componentes principales.
+
+```{r}
+fviz_eig(sp_perc_cen_acp50, addlabels = TRUE, ylim = c(0,100))
+
+```
+
+Si consideramos dos componentes principales, la representación de los datos es la siguiente:
+
+
+```{r}
+autoplot(sp_perc_cen_acp50, data = sp_perc_cen50, #colour = 'genero', #no entiendo pk no me pinta por colores y asi tener las agrupaciones autenticas
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+```
+
+
+Lo dividiremos en tres partes, donde realizaremos tres técnicas aprendidas en clase: el método de *k-means*, el método *k-medoids* y el método de clustering jerárquico aglomerativo.
+
+
+
+
+
+
+
+
+
+
+### Método k-means
+
+```{r}
+#datos <- scale(spotify_perc50)
+#ahora no se si es necesatio escalar los datos para el kmeans en nuestro caso, si lo hago el clustering queda peor
+```
+
+```{r}
+set.seed(123)
+km_clusters <- kmeans(x = spotify_perc50, centers = 6, nstart = 25)
+km_clusters
+```
+
+```{r}
+fviz_cluster(object = km_clusters, data = spotify_perc50, show.clust.cent = TRUE,
+ ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+theme_bw() +
+theme(legend.position = "none")
 
 ```
 
 
 
-## Método k-means
 
+### Método k-medoids
 
-
-
-
-
-
-## Método k-medoids
-
-Recordemos que para aplicar el método *k-medoids*, como en el método *k-means*, se necesitan $k$ elementos para iniciar el algoritmo. Primero, necesitamos encontrar la $k$ óptima, para esto, utilizaremos la función `r fviz_nbclust()`, con la distancia euclidea y la de Manhattan.
+Recordemos que para aplicar el método *k-medoids*, como en el método *k-means*, se necesitan $k$ elementos para iniciar el algoritmo. Primero, necesitamos encontrar la $k$ óptima, para esto, utilizaremos la función ` fviz_nbclust()`, con la distancia euclidea y la de Manhattan.
 
 
 ```{r}
 # Euclidea
-fviz_nbclust(x = spotify_perc_50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc_50, method = "euclidean")) +
+fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc50, method = "euclidean")) +
   labs(title = "Número de clusters óptimos", subtitle = "Distancia Euclidea", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
   theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15))
 ```
@@ -216,18 +350,18 @@ fviz_nbclust(x = spotify_perc_50, FUNcluster = pam, method = "wss", diss = dist(
 
 ```{r}
 # Manhattan
-fviz_nbclust(x = spotify_perc_50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc_50, method = "manhattan")) +
+fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc50, method = "manhattan")) +
   labs(title = "Número de clusters óptimos", subtitle = "Distancia Manhattan", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
   theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15))
 ```
 
-Como podemos ver, con las dos distancias obtenemos el mismo patrón. A partir de estos gráficos podríamos deducir que a partir de $k = 5$ clusters la suma total de los cuadrados internos empieza a estabilizarse, por eso consideraremos este valor de $k$. Para aplicar el método PAM, usaremos la distancia euclidea. Veamos con la función de R `r pam` los medoides:
+Como podemos ver, con las dos distancias obtenemos el mismo patrón. A partir de estos gráficos podríamos deducir que a partir de $k = 5$ clusters la suma total de los cuadrados internos empieza a estabilizarse, por eso consideraremos este valor de $k$. Para aplicar el método PAM, usaremos la distancia euclidea. Veamos con la función de R ` pam` los medoides:
 
 
 ```{r}
 set.seed(2218)
 
-spotify_pam <- pam(x = spotify_perc_50, k = 5, metric = "euclidean")
+spotify_pam <- pam(x = spotify_perc50, k = 5, metric = "euclidean")
 
 spotify_pam$id.med
 ```
@@ -236,9 +370,9 @@ Estos son los id de las observaciones representantes de los grupos, veamos los v
 
 
 ```{r}
-id_medoids = c(18,27,34,36,37)
+id_medoids = c(30,9,3,41,24)
 
-spotify_perc_50 %>% 
+spotify_perc50 %>% 
   filter(rownames(.) %in% id_medoids) %>%
   mutate(id = id_medoids) %>% 
   relocate(id, .before = "dance%") %>% 
@@ -249,7 +383,7 @@ Veamos las agrupaciones en el plano a partir de las componentes principales, sol
 
 ```{r}
 # Para resaltar los medoides
-medoids <- prcomp(spotify_perc_50, scale = TRUE)$x
+medoids <- prcomp(spotify_perc50, scale = TRUE)$x
 
 # Se seleccionan únicamente las proyecciones de las observaciones que son medoids
 
@@ -276,7 +410,7 @@ fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", r
 
 
 
-## Método de clustering jerárquico aglomerativo
+### Método de clustering jerárquico aglomerativo
 
 
 
@@ -285,8 +419,116 @@ fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", r
 
 
 
+## Top5 artistas 
+
+Vamos a realizar el mismo estudio ahora considerando otros datos y agrupaciones. En el trabajo anterior estudiamos cuales eran los 5 artistas con más reproducciones en Spotify y las características de sus canciones asi que nos parece interesante estudiar si tomando los datos de estas canciones y sus características encontraremos una agrupación en cuanto al artista que las compone.
+
+Asi consideramos los datos de los 5 artistas con más reproducciones: Taylor Swift, The Weeknd, Bad Bunny, SZA y Harry Styles 
+```{r dataset_top3, warning= FALSE}
+
+# Dataset completo con solo los artistas top 5
+spotify_top5 = spotify2 %>% 
+  filter(artist %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
+  arrange(artist)
+  
+spotify_top5 %>% 
+  glimpse
+
+
+# Dataset Artistas top5
+spotify_top5_artists = spotify_top5 %>% 
+  group_by(artist) %>% 
+  summarise()
+
+```
+
+Otra vez solo consideramos las variables cuantitativas porcentuales que representan las características de cada canción
+```{r}
+spotify_cuant5 = spotify_top5 %>% 
+  select(is.double) %>% 
+  na.omit()
+
+spotify_perc5 = spotify_cuant5 %>% 
+  select(contains("%"))
+
+spotify_perc5
+```
+
+Empecemos el estudio del clustering con los diferentes métodos que conocemos:
+
+
+### Método k-means.
+
+```{r}
+#datos <- scale(spotify_perc50)
+```
 
 
 
+```{r}
+set.seed(12400)
+km_clusters1 <- kmeans(x = spotify_perc5, centers = 5, nstart = 25)
+km_clusters1
+```
+```{r}
+fviz_cluster(object = km_clusters1, data = spotify_perc5, show.clust.cent = TRUE,
+ ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+theme_bw() +
+theme(legend.position = "none")
+
+```
+
+### Método k-medoids.
+
+Recordemos que para aplicar el método *k-medoids*, como en el método *k-means*, se necesitan $k$ elementos para iniciar el algoritmo. Nosotros tomaremos $k=5$ que son el número de artistas que participan y de los cuales queremos agrupar los resultados.
 
 
+ Para aplicar el método PAM, usaremos la distancia euclidea. Veamos con la función de R ` pam` los medoides:
+
+
+```{r}
+set.seed(2218)
+
+spotify_pam5 <- pam(x = spotify_perc5, k = 5, metric = "euclidean")
+
+spotify_pam5$id.med
+```
+
+Estos son los id de las observaciones representantes de los grupos, veamos los valores que toman estas observaciones.
+
+
+```{r}
+id_medoids5 = c(96,58,8,16,36)
+
+spotify_perc5 %>% 
+  filter(rownames(.) %in% id_medoids5) %>%
+  mutate(id5 = id_medoids5) %>% 
+  relocate(id5, .before = "dance%") %>% 
+  show()
+
+```
+Veamos las agrupaciones en el plano a partir de las componentes principales, solo considerando dos dimensiones.
+
+```{r}
+# Para resaltar los medoides
+medoids5 <- prcomp(spotify_perc5, scale = TRUE)$x
+
+# Se seleccionan únicamente las proyecciones de las observaciones que son medoids
+
+medoids5 <- medoids5[id_medoids5, c("PC1", "PC2")]
+
+
+medoids5 <- as.data.frame(medoids5)
+# Se emplean los mismos nombres que en el objeto ggplot
+colnames(medoids5) <- c("x", "y")
+
+
+fviz_cluster(object = spotify_pam5, data = spotify_perc_5, ellipse.type = "t", repel = TRUE) +
+  theme_bw() +
+  labs(title = "Representación con Componentes Principales") +
+  theme(legend.position = "none") +
+  
+  #Medoides 
+  geom_point(data = medoids5, color = "#EE0606", size = 2)
+
+```
