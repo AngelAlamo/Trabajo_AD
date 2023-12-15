@@ -335,9 +335,9 @@ spotify_top5 %>%
 
 
 # Dataset Artistas top5
-spotify_top5_artists = spotify_top5 %>% 
-  group_by(artist) %>% 
-  summarise()
+#spotify_top5_artists = spotify_top5 %>% 
+  #group_by(artist) %>% 
+  #summarise()
 
 ```
 
@@ -351,8 +351,64 @@ spotify_cuant5 = spotify_top5 %>%
 spotify_perc5 = spotify_cuant5 %>% 
   select(contains("%"))
 
-spotify_perc5
+spotify_perc5%>%
+  glimpse
 ```
+
+### Representación en el plano principal
+
+
+
+```{r top5 var porcentaje centrados, warning=FALSE}
+# Número de filas
+n = nrow(spotify_perc5)
+
+# Matriz de centrado
+Hn = diag(n) - 1/n
+
+# Datos centrados
+sp_perc_cen5 = as_tibble(Hn %*% as.matrix(spotify_perc5))
+
+sp_perc_cen5 <- sp_perc_cen5 %>% 
+  add_column(artist = spotify_top5$artist, track_name = spotify_top5$track_name) %>%
+  relocate(track_name, .before = `dance%`) %>%
+  relocate(artist, .before = track_name) %>%
+  glimpse
+```
+
+Calculamos las componentes principales con la función ` prcomp`:
+
+```{r acp top5}
+sp_perc_cen_acp5 = prcomp(sp_perc_cen5[,3:9], scale = FALSE)
+```
+
+Veamos la representación de los puntos en el plano:
+
+```{r representacion top5}
+#fviz_pca_ind(sp_perc_cen_acp5, col.ind = sp_perc_cen5$artist, repel = TRUE,
+ #            label = FALSE, title = "Gráfico de los top5 artistas con ACP",
+  #           subtitle = "Variables porcentuales") + 
+  #theme_bw() +
+  #theme(plot.title = element_text(size = 15),
+   #     plot.subtitle = element_text(size = 12))
+
+# Por que me salen figuritas, solo quiero puntos de colores :(
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Empecemos el estudio del clustering con los diferentes métodos que conocemos:
 
