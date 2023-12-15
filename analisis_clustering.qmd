@@ -328,6 +328,8 @@ Asi consideramos los datos de los 5 artistas con más reproducciones: Taylor Swi
 # Dataset completo con solo los artistas top 5
 spotify_top5 = spotify2 %>% 
   filter(artist %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
+  mutate(artist = as.character(artist)) %>%
+  mutate(artist = as.factor(artist)) %>% 
   arrange(artist)
   
 spotify_top5 %>% 
@@ -341,14 +343,11 @@ spotify_top5 %>%
 
 ```
 
+
 Otra vez solo consideramos las variables cuantitativas porcentuales que representan las características de cada canción
 
 ```{r}
-spotify_cuant5 = spotify_top5 %>% 
-  select(is.double) %>% 
-  na.omit()
-
-spotify_perc5 = spotify_cuant5 %>% 
+spotify_perc5 = spotify_top5 %>% 
   select(contains("%"))
 
 spotify_perc5%>%
@@ -385,12 +384,12 @@ sp_perc_cen_acp5 = prcomp(sp_perc_cen5[,3:9], scale = FALSE)
 Veamos la representación de los puntos en el plano:
 
 ```{r representacion top5}
-#fviz_pca_ind(sp_perc_cen_acp5, col.ind = sp_perc_cen5$artist, repel = TRUE,
- #            label = FALSE, title = "Gráfico de los top5 artistas con ACP",
-  #           subtitle = "Variables porcentuales") + 
-  #theme_bw() +
-  #theme(plot.title = element_text(size = 15),
-   #     plot.subtitle = element_text(size = 12))
+fviz_pca_ind(sp_perc_cen_acp5, col.ind = sp_perc_cen5$artist, repel = TRUE,
+             label = FALSE, title = "Gráfico de los top5 artistas con ACP",
+             subtitle = "Variables porcentuales") + 
+  theme_bw() +
+  theme(plot.title = element_text(size = 15),
+        plot.subtitle = element_text(size = 12))
 
 # Por que me salen figuritas, solo quiero puntos de colores :(
 ```
@@ -430,7 +429,6 @@ fviz_cluster(object = km_clusters1, data = spotify_perc5, show.clust.cent = TRUE
  ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
 theme_bw() +
 theme(legend.position = "none")
-
 ```
 
 ### Método k-medoids.
