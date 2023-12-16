@@ -254,7 +254,7 @@ fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent =
 Recordemos que para aplicar el método *k-medoids*, como en el método *k-means*, se necesitan $k$ puntos de referencia para iniciar el algoritmo. Primero, necesitamos encontrar la $k$ óptima, para esto, utilizaremos la función ` fviz_nbclust()`, con la distancia euclidea y la de Manhattan.
 
 
-```{r}
+```{r cl_opt_eucl}
 # Euclidea
 fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc50, method = "euclidean")) +
   labs(title = "Número de clusters óptimos", subtitle = "Distancia Euclidea", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
@@ -262,7 +262,7 @@ fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(s
 ```
 
 
-```{r}
+```{r cl_optimos_manhattan}
 # Manhattan
 fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(spotify_perc50, method = "manhattan")) +
   labs(title = "Número de clusters óptimos", subtitle = "Distancia Manhattan", x = "Número de clusters", y = "Suma total de los cuadrados (wss) ") +
@@ -272,33 +272,21 @@ fviz_nbclust(x = spotify_perc50, FUNcluster = pam, method = "wss", diss = dist(s
 Como podemos ver, con las dos distancias obtenemos el mismo patrón. A partir de estos gráficos podríamos deducir que a partir de $k = 5$ clusters la suma total de los cuadrados internos empieza a estabilizarse, por eso consideraremos este valor de $k$. Para aplicar el método PAM, usaremos la distancia euclidea. Veamos con la función de R, ` pam`, los medoides:
 
 
-```{r}
+```{r pam_5}
 
 spotify_pam <- pam(x = spotify_perc50, k = 5, metric = "euclidean", nstart = 50)
 
-spotify_pam
+cbind(spotify_pam$id.med,spotify_pam$medoids)
 
-```
-
-El "ID" de los representantes de los clusters es $[7,9,3,18,24]$, que corresponden a las siguientes observaciones:
-
-
-```{r}
 id_medoids = c(7,9,3,18,24)
 
-spotify_perc50 %>% 
-  filter(rownames(.) %in% id_medoids) %>%
-  mutate(id = id_medoids) %>% 
-  relocate(id, .before = "dance%") %>% 
-  show()
-
 ```
 
-Como podemos ver, los valores que toman los representantes se diferencian principalmente por la variable "acoustic%", y la variable "energy%", lo que nos indica que, en general, estas observaciones se han distinguido por estas características. Además, fijémonos que las observaciones con "ID = 9" y "ID = 18" se diferencian por las otras variables: "dance%" y "valence".
+Como podemos ver, los valores que toman los representantes se diferencian principalmente por la variable "acoustic%", y la variable "energy%", lo que nos indica que, en general, estas observaciones se han distinguido por estas características. Además, fijémonos que las observaciones con "ID = 7" y "ID = 18" se diferencian por las otras variables: "dance%" y "valence".
 
 Veamos las agrupaciones en el plano a partir de las componentes principales, solo considerando dos dimensiones.
 
-```{r}
+```{r repr_medoid_5}
 # Para resaltar los medoides
 medoids <- prcomp(spotify_perc50, scale = TRUE)$x
 
@@ -316,7 +304,6 @@ colnames(medoids) <- c("x", "y")
 fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", repel = TRUE,
              main = "Representación con ACP", subtitle = "Método k-medoids, k = 5") +
   theme_bw() +
-  theme(legend.position = "none") +
   theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15)) +
   
   #Medoides 
@@ -324,13 +311,174 @@ fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", r
 
 ```
 
-Las agrupaciones que se obtienen
+Els espacio que forman los grupos no son muy diferenciados, en el sentido de que intersecan con otros grupos, por lo tanto, podemos deducir que la agrupación no es del todo buena, aunque esto puede ser debido a la poca explicación de la varianza de las componentes principales, que es aproximadamente de un $50\%$.
+
+Si comparamos con el caso en que consideramos $k = 6$ clusters (el "correcto"):
+
+
+```{r repr_medoid_6}
+
+
+spotify_pam_6 <- pam(x = spotify_perc50, k = 6, metric = "euclidean", nstart = 50)
+
+spotify_pam_6
+
+```
+
+```{r repr_medoids_6}
+
+id_medoids6 = c(30, 9, 3, 41, 25, 49)
+
+# Para resaltar los medoides
+medoids6 <- prcomp(spotify_perc50, scale = TRUE)$x
+
+# Se seleccionan únicamente las proyecciones de las observaciones que son medoids
+
+medoids6 <- medoids6[id_medoids6, c("PC1", "PC2")]
+
+
+medoids6 <- as.data.frame(medoids6)
+
+# Se emplean los mismos nombres que en el objeto ggplot
+colnames(medoids6) <- c("x", "y")
+
+
+fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t", repel = TRUE,
+             main = "Representación con ACP", subtitle = "Método k-medoids, k = 6") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15)) +
+  
+  #Medoides 
+  geom_point(data = medoids6, color = "#683068", size = 2.5)
+```
+
+
 
 
 
 
 ### Método de clustering jerárquico aglomerativo
 
+Utilizaremos este método con tres tipos de distancia: simple, completa y Ward. Todos ellos utilizarán como matriz de distancia la obtenida aplicando la distanica euclidea:
+
+#### Enlace simple:
+
+```{r enlace_simple_50}
+
+mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
+
+# Dendograma
+dend_simple_50 = hclust(d = mat_dist50, method = "single")
+
+```
+
+```{r dend_simple}
+
+fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
+
+```
+
+Como vemos, los clusters obtenidos (hemos considerado $k = 6$) no son nada descriptivos, tenemos 4 grupos formados por un único elemento, otro grupo formado por dos elementos y un grupo que contiene los elementos restantes, de los cuales no podemos deducir mucho. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones: 
+
+
+```{r cor_simple50}
+# Para ver si la estructura refleja las distancias originales entre observaciones
+cor(x = mat_dist50, cophenetic(dend_simple_50))
+
+```
+
+Recordemos que se considera una buena representación si $> 0.75$. En este caso, la representación no es nada buena y tendremos que basarnos en las otras distancias para sacar conclusiones. A continuación mostramos los clusters obtenidos en el plano.
+
+```{r plano_simple50}
+
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_simple_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+
+
+
+#### Enlace completo
+
+Repetimos el proceso anterior, consdierando ahora la distancia completa entre clusters.
+
+```{r enlace_completo_50}
+
+# Dendograma
+dend_compl_50 = hclust(d = mat_dist50, method = "complete")
+
+```
+
+```{r dend_compl}
+
+fviz_dend(x = dend_compl_50, k = 6, cex = 0.6)
+
+```
+
+```{r cor_compl50}
+print("Coeficiente de correlación entre las distancias cophenetic")
+cor(x = mat_dist50, cophenetic(dend_compl_50))
+
+```
+
+
+Comparando con el caso anterior, los grupos que se obtienen son mucho más equilibrados en cuanto a observaciones y tienen un mayor sentido. Además, como cabe esperar, el coeficiente de correlación entre las distancias es muy superior a la anterior, de aproximadamente $0.68\%$, por lo tanto esta estructura si que refleja las distancias originales entre las observaciones. Por último, veamos las agrupaciones en el plano:
+
+
+```{r plano_compl50}
+
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_compl_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+Con gran diferencia, este método con la distancia completa nos ha proporcionado una agrupación más coherente de las observaciones, donde en general se distinguen según el valor que toman en la primera componente principal.
+
+
+
+#### Ward
+
+
+Como última distancia entre clsuters, consideraremos la distancia Ward. 
+
+```{r enlace_ward_50}
+
+# Dendograma
+dend_ward_50 = hclust(d = mat_dist50, method = "ward.D2")
+
+```
+
+```{r dend_ward}
+
+fviz_dend(x = dend_ward_50, k = 6, cex = 0.6)
+
+```
+
+```{r cor_ward50}
+print("Coeficiente de correlación entre las distancias cophenetic")
+cor(x = mat_dist50, cophenetic(dend_ward_50))
+
+```
+
+Nuevamente, obtenemos una agrupación interesante de los datos, aunque respecto al anterior, el coeficiente de correlación es algo inferior, por lo que puede indicar que esta representación no respeta correctamente la distancia real entre las observaciones. Si vemos estos clusters en el plano:
+
+```{r plano_ward50}
+
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_ward_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+En general, tenemos grupos coherentes y muy similares a los anteriores, excepto el grupo 1, que no parece encajar de todo en la estructura formada, esto podría indicar que el número de clusters que se debería indicar es realmente $k = 5$, de manera que este grupo se repartiría entre los grupos 4,5 y 6 haciendo una estructura más solida y mejor representada.
 
 
 
