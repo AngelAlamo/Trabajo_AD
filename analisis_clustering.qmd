@@ -157,50 +157,29 @@ Tenemos 6 posibles valores en la variable *género*:
 
 ### Representación en el plano principal
 
-Primero, representaremos estas 50 canciones en el plano formado por las dos primeras componentes principales con el objetivo de ver inicialmente la distribución de estas canciones. Esta representación se hará únicamente con las variables porcentuales, por dos razones: estas variables están en la misma unidad de medida y queremos tener en cuenta la variabilidad presente, por lo tanto considerando solo las porcentuales no es necesario tipificar (únicamente centrar); y, por otra parte, al ser estas observaciones las canciones más escuchadas, tiene más sentido representarlas según las propiedades de estas.
+Primero, representaremos estas 50 canciones en el plano formado por las dos primeras componentes principales con el objetivo de ver inicialmente la distribución de estas canciones. Esta representación se hará únicamente con las variables porcentuales ya que, al ser estas observaciones las canciones más escuchadas, tiene más sentido representarlas según las propiedades de estas.
 
 ```{r var porcentajes top50, warning=FALSE}
 spotify_perc50 <- top50canciones %>% 
   select(contains("%")) %>% 
   na.omit()
 
-spotify_perc50 %>%
+spotify_perc50 <- spotify_perc50 %>%
   mutate(track_name = top50canciones$track_name, genero = top50canciones$genero) %>% 
   relocate(track_name, .before = `dance%`) %>% 
   relocate(genero, .before = `dance%`) %>% 
   glimpse
 ```
 
-Ahora, centraremos estos datos y obtenemos lo siguiente:
-
-```{r top50 var porcentaje centrados, warning=FALSE}
-# Número de filas
-m = nrow(spotify_perc50)
-
-# Matriz de centrado
-Hm = diag(m) - 1/m
-
-# Datos centrados
-sp_perc_cen50 = as_tibble(Hm %*% as.matrix(spotify_perc50))
-
-sp_perc_cen50 <- sp_perc_cen50 %>% 
-  add_column(genero = genero, track_name = top50canciones$track_name) %>%
-  relocate(genero, .before = `dance%`) %>%
-  relocate(track_name, .before = genero) %>%
-  glimpse
-
-```
-
-
 ```{r acp top50}
-sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,3:9], scale = FALSE)
+sp_perc_acp50 = prcomp(spotify_perc50[,3:9], scale = TRUE)
 ```
 
 Veamos la representación de los puntos en el plano:
 
 
 ```{r representacion}
-fviz_pca_ind(sp_perc_cen_acp50, col.ind = sp_perc_cen50$genero, repel = TRUE,
+fviz_pca_ind(sp_perc_acp50, col.ind = spotify_perc50$genero, repel = TRUE,
              label = FALSE, title = "Representación de las top50 canciones con ACP",
              subtitle = "Variables porcentuales", legend.title = "Géneros musicales") + 
   theme_bw() +
@@ -219,14 +198,14 @@ Para el método de *k-means* hay que elegir previamente el número de clusters q
 ```{r}
 set.seed(123)
 
-km_clusters <- kmeans(x = sp_perc_cen50[,3:9], centers = 6, nstart = 25)
+km_clusters <- kmeans(x = spotify_perc50[,3:9], centers = 6, nstart = 25)
 km_clusters
 ```
 
 En la primera línea tenemos los tamaños de los clusters: $7, 8, 8, 9, 11, 7$, y como vemos, más o menos los grupos están equilibrados y no hay ninguno con pocas observaciones, esto es bueno ya que esto nos podría indicar que no hay presencia de valores atípicos (outliers). Por otro lado, el porcentaje de variabilidad que explican los clusters es $70.3\%$. A continuación mostramos los grupos formados por el método *k-means* a partir de las dos primeras componentes principales:
 
 ```{r}
-fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent = TRUE,
+fviz_cluster(object = km_clusters, data = spotify_perc50[,3:9], show.clust.cent = TRUE,
              ellipse.type = "euclid", star.plot = TRUE, repel = TRUE,
              main = "Representación con CP", subtitle = "Método k-means, k = 6") + 
   theme_bw() +
@@ -235,6 +214,7 @@ fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent =
 
 ```
 
+Por último, mostramos la tabla de frecuencias de los clusters respecto el género musical:
 
 ```{r tabla mean, warning = FALSE}
 
@@ -245,7 +225,7 @@ tabla_mean = as_tibble(cbind(km_clusters$cluster, genero)) %>%
 tabla_mean
 ```
 
-
+Podemos ver que este método no nos ha agrupado las 50 canciones más reproducidas por género correctamente. En general, cada cluster contiene varios tipos de canciones y cada género se encuentra en varios clusters. Las observaciones más notables son que el cluster número 4 contiene canciones del género pop, salvo una de género popRock; también, podemos observar que las canciones del género rock se encuentran en los clusters 3 y 5. Concluimos que este método solo nos consigue separar eficazmente algunas canciones del género pop.
 
 ### Método k-medoids
 
@@ -255,7 +235,7 @@ De la misma manera que en el método *k-means*, consideraremos $k = 6$ clusters.
 ```{r repr_medoid_6}
 
 
-spotify_pam_6 <- pam(x = spotify_perc50, k = 6, metric = "euclidean", nstart = 50)
+spotify_pam_6 <- pam(x = spotify_perc50[,3:9], k = 6, metric = "euclidean", nstart = 50)
 
 spotify_pam_6$medoids
 
@@ -270,7 +250,7 @@ que corresponden a las observaciones `r spotify_pam_6$id.med` respectivamente. S
 id_medoids6 = c(30, 9, 3, 41, 25, 49)
 
 # Para resaltar los medoides
-medoids6 <- prcomp(spotify_perc50, scale = TRUE)$x
+medoids6 <- prcomp(spotify_perc50[,3:9], scale = TRUE)$x
 
 # Se seleccionan únicamente las proyecciones de las observaciones que son medoids
 
@@ -295,7 +275,7 @@ fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t",
 Debido a que con dos componentes principales la cantidad de varianza que explican es baja (aproximadamente un $50\%$), esta representación no es del todo precisa. Como vemos, los grupos que se forman se interesectan y no parece haber una distinción clara de los grupos. Por último, mostramos la tabla de frecuencias de los clusters respecto el género musical:
 
 
-```{r tabla medoid}
+```{r tabla medoid, warning = FALSE}
 
 tabla_medoids = as_tibble(cbind(spotify_pam_6$clustering, genero)) %>% 
   rename("Cluster" = "V1") %>% 
@@ -305,7 +285,7 @@ tabla_medoids
 ```
 
 
-En general, ningún género musical pertenece a un único cluster, por lo tanto la agrupación obtenida a partir del método *k-medoids* no es del todo buena. Además, en cada cluster pertenecen al menos dos observaciones con distinto género musical, y en el mejor caso, corresponde al cluster 3 que contiene a la mayor cantidad de canciones pop, y 2 canciones popRock. 
+En general, ningún género musical pertenece a un único cluster, por lo tanto la agrupación obtenida a partir del método *k-medoids* no es del todo buena. Además, en cada cluster pertenecen al menos dos observaciones con distinto género musical, y en el mejor caso, como en el método anterior, corresponde al cluster 3 que contiene a la mayor cantidad de canciones pop, y 2 canciones popRock.
 
 
 ### Método de clustering jerárquico aglomerativo
@@ -317,7 +297,7 @@ Utilizaremos este método con tres tipos de distancia: medio, completa y Ward. T
 
 ```{r enlace_media_50}
 
-mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
+mat_dist50 = dist(x = spotify_perc50[,3:9], method = "euclidean")
 
 # Dendograma
 dend_media_50 = hclust(d = mat_dist50, method = "average")
@@ -345,7 +325,7 @@ Recordemos que se considera una buena representación si es $> 0.75$. En este ca
 
 ```{r plano_media50}
 
-fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_media_50, k = 6)),
+fviz_cluster(object = list(data = spotify_perc50[,3:9], cluster = cutree(dend_media_50, k = 6)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
@@ -366,7 +346,7 @@ tabla_media
 ```
 
 
-A partir de este método, se consigue una agrupación completa del género rock, presente en el cluster 5, no obstante, contiene algo de "ruido" ya que también hay observaciones de otros géneros musicales. Respecto al género dancehall, se ha podido agrupar mejor si comparamos con los métodos anteriores, donde ahora la mayoría están contenidos en el cluster 1. Por otro lado, géneros como el pop se han acumulado en dos clusters, el primero y el tercero.
+A partir de este método, se consigue una agrupación completa del género rock, presente en el cluster 5, no obstante, contiene algo de "ruido" ya que también hay observaciones de otros géneros musicales. Respecto al género dancehall, se ha podido agrupar mejor si comparamos con los métodos anteriores, donde ahora la mayoría están contenidos en el cluster 1. Por otro lado, géneros como el pop se han acumulado en dos clusters, el primero y el tercero. El tercer cluster, ha separado correctamente algunas canciones del género pop ya que únicamente encontramos una canción de otro género (popRock).
 
 
 #### Enlace completo
@@ -399,7 +379,7 @@ A partir de esta distancia, comparando con la anterior, se obtienen grupos más 
 
 ```{r plano_compl50}
 
-fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_compl_50, k = 6)),
+fviz_cluster(object = list(data = spotify_perc50[,3:9], cluster = cutree(dend_compl_50, k = 6)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
@@ -407,7 +387,7 @@ theme_bw()
 
 ```
 
-Tenemos que no hay ningún grupo que se intersecta y todo grupo formado parece tener un sentido considerarlos. Por último, si hacemos la tabla cluster.género:
+Tenemos que no hay ningún grupo que se intersecta y todo grupo formado parece tener un sentido considerarlos. Por último, si hacemos la tabla cluster género:
 
 ```{r tabla_completa50}
 
@@ -419,7 +399,7 @@ tabla_completa
 
 ```
 
-Aún teniendo una mejor estructura y una mejor respresentación de las distancias, los grupos no reflejan las diferencias entre los géneros y se ha perdido una representación de estos, ya que ahora las observaciones parecen estar más dispersas entre los clusters.
+Aún teniendo una mejor estructura y una mejor respresentación de las distancias, los grupos no reflejan las diferencias entre los géneros y se ha perdido una representación de estos, ya que ahora las observaciones parecen estar más dispersas entre los clusters. Sin embargo, como en todos los casos anteriores, podemos ver una agrupación con la mayoría de canciones del género pop.
 
 
 #### Ward
@@ -446,11 +426,11 @@ cor(x = mat_dist50, cophenetic(dend_ward_50))
 
 ```
 
-Nuevamente, obtenemos una agrupación interesante de los datos, aunque respecto al anterior, el coeficiente de correlación es algo inferior, por lo que puede indicar que esta representación no respeta correctamente la distancia real entre las observaciones. Si vemos estos clusters en el plano:
+Nuevamente, obtenemos una agrupación interesante de los datos, aunque respecto a los anteriores, el coeficiente de correlación es algo inferior, por lo que puede indicar que esta representación no respeta correctamente la distancia real entre las observaciones. Si vemos estos clusters en el plano:
 
 ```{r plano_ward50}
 
-fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_ward_50, k = 6)),
+fviz_cluster(object = list(data = spotify_perc50[,3:9], cluster = cutree(dend_ward_50, k = 6)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
@@ -471,12 +451,7 @@ tabla_ward
 
 ```
 
-En este caso, hemos perdido una agrupación de los géneros dancehall y rock, en cambio, el género pop se ha agrupado principalmente en el cluster 3. Respecto a los otros géneros, seguimos obteniendo la misma dispersión entre clusters
-
-
-
-
-
+En este caso, hemos perdido una agrupación de los géneros dancehall y rock, en cambio, el género pop se ha agrupado principalmente en el cluster 3. Respecto a los otros géneros, seguimos obteniendo la misma dispersión entre clusters.
 
 ## Top5 artistas
 
@@ -516,33 +491,17 @@ spotify_perc5%>%
 
 ### Representación en el plano principal
 
-```{r top5 var porcentaje centrados, warning=FALSE}
-# Número de filas
-n = nrow(spotify_perc5)
-
-# Matriz de centrado
-Hn = diag(n) - 1/n
-
-# Datos centrados
-sp_perc_cen5 = as_tibble(Hn %*% as.matrix(spotify_perc5))
-
-sp_perc_cen5 <- sp_perc_cen5 %>% 
-  add_column(artist = spotify_top5$artist, track_name = spotify_top5$track_name) %>%
-  relocate(track_name, .before = `dance%`) %>%
-  relocate(artist, .before = track_name) %>%
-  glimpse
-```
 
 Calculamos las componentes principales con la función `prcomp`:
 
 ```{r acp top5}
-sp_perc_cen_acp5 = prcomp(sp_perc_cen5[,3:9], scale = FALSE)
+sp_perc_acp5 = prcomp(spotify_perc5, scale = TRUE)
 ```
 
 Veamos la representación de los puntos en el plano:
 
 ```{r representacion top5}
-fviz_pca_ind(sp_perc_cen_acp5, col.ind = sp_perc_cen5$artist, repel = TRUE,
+fviz_pca_ind(sp_perc_acp5, col.ind = spotify_top5$artist, repel = TRUE,
              label = FALSE, title = "Gráfico de los top5 artistas con ACP",
              subtitle = "Variables porcentuales") + 
   theme_bw() +
@@ -555,10 +514,6 @@ fviz_pca_ind(sp_perc_cen_acp5, col.ind = sp_perc_cen5$artist, repel = TRUE,
 Empecemos el estudio del clustering con los diferentes métodos que conocemos:
 
 ### Método k-means.
-
-```{r}
-#datos <- scale(spotify_perc50)
-```
 
 ```{r}
 set.seed(12400)
