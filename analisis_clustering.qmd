@@ -369,13 +369,13 @@ Utilizaremos este método con tres tipos de distancia:completa, media y Ward. To
 mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
 
 # Dendograma
-dend_simple_50 = hclust(d = mat_dist50, method = "complete")
+dend_complet_50 = hclust(d = mat_dist50, method = "complete")
 
 ```
 
 ```{r dend_completo}
 
-fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
+fviz_dend(x = dend_complet_50, k = 6, cex = 0.6)
 
 ```
 
@@ -388,7 +388,7 @@ fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
 
 ```{r cor_simple50}
 # Para ver si la estructura refleja las distancias originales entre observaciones
-cor(x = mat_dist50, cophenetic(dend_simple_50))
+cor(x = mat_dist50, cophenetic(dend_complet_50))
 
 ```
 
@@ -396,7 +396,7 @@ Recordemos que se considera una buena representación si $> 0.75$. En este caso,
 
 ```{r plano_simple50}
 
-fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_simple_50, k = 6)),
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_complet_50, k = 6)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
@@ -407,26 +407,26 @@ theme_bw()
 
 
 
-#### Enlace completo
+#### Enlace Medio
 
 Repetimos el proceso anterior, consdierando ahora la distancia completa entre clusters.
 
 ```{r enlace_completo_50}
 
 # Dendograma
-dend_compl_50 = hclust(d = mat_dist50, method = "complete")
+dend_med_50 = hclust(d = mat_dist50, method = "average")
 
 ```
 
 ```{r dend_compl}
 
-fviz_dend(x = dend_compl_50, k = 6, cex = 0.6)
+fviz_dend(x = dend_med_50, k = 6, cex = 0.6)
 
 ```
 
 ```{r cor_compl50}
 print("Coeficiente de correlación entre las distancias cophenetic")
-cor(x = mat_dist50, cophenetic(dend_compl_50))
+cor(x = mat_dist50, cophenetic(dend_med_50))
 
 ```
 
@@ -436,7 +436,7 @@ Comparando con el caso anterior, los grupos que se obtienen son mucho más equil
 
 ```{r plano_compl50}
 
-fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_compl_50, k = 6)),
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_med_50, k = 6)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
@@ -657,5 +657,132 @@ fviz_cluster(object = spotify_pam5, data = spotify_perc_5, ellipse.type = "t", r
   
   #Medoides 
   geom_point(data = medoids5, color = "#EE0606", size = 2)
+
+```
+
+
+
+### Método de clustering jerárquico aglomerativo.
+
+Utilizaremos este método con tres tipos de distancia: completa, media y Ward. Todos ellos utilizarán como matriz de distancia la obtenida aplicando la distanica euclidea:
+
+#### Enlace completo:
+
+```{r enlace_completo_50}
+
+mat_dist5 = dist(x = spotify_perc5, method = "euclidean")
+
+# Dendograma
+dend_complete_5 = hclust(d = mat_dist5, method = "complete")
+
+```
+
+```{r dend_completo}
+
+fviz_dend(x = dend_complete_5, k = 5, cex = 0.6)
+
+```
+
+```{r interpretacion enlace simple}
+# Como vemos, los clusters obtenidos (hemos considerado $k = 6$) no son nada descriptivos, tenemos 4 grupos formados por un único elemento, otro grupo formado por dos elementos y un grupo que contiene los elementos restantes, de los cuales no podemos deducir mucho. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones: 
+```
+
+
+
+
+```{r cor_simple50}
+# Para ver si la estructura refleja las distancias originales entre observaciones
+cor(x = mat_dist5, cophenetic(dend_complete_5))
+
+```
+
+Recordemos que se considera una buena representación si $> 0.75$. En este caso, la representación no es lo suficientemente buena y tendremos que basarnos en las otras distancias para sacar conclusiones. A continuación mostramos los clusters obtenidos en el plano.
+
+```{r plano_simple50}
+
+fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_complete_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+
+
+
+#### Enlace medio
+
+Repetimos el proceso anterior, consdierando ahora la distancia media entre clusters.
+
+```{r enlace_completo_50}
+
+# Dendograma
+dend_med_5 = hclust(d = mat_dist5, method = "average")
+
+```
+
+```{r dend_compl}
+
+fviz_dend(x = dend_med_5, k = 5, cex = 0.6)
+
+```
+
+```{r cor_compl50}
+print("Coeficiente de correlación entre las distancias cophenetic")
+cor(x = mat_dist5, cophenetic(dend_med_5))
+
+```
+
+Tenemos dos agrupaciones principales y pese a ello el coeficiente de correlación entre las distancias es superior a la anterior, de aproximadamente $0.72\%$, por lo tanto esta estructura deberia reflejar las distancias originales entre las observaciones. Por último, veamos las agrupaciones en el plano:
+
+
+```{r plano_compl50}
+
+fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_med_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+
+
+
+
+#### Ward
+
+
+Como última distancia entre clsuters, consideraremos la distancia Ward. 
+
+```{r enlace_ward_50}
+
+# Dendograma
+dend_ward_5 = hclust(d = mat_dist5, method = "ward.D2")
+
+```
+
+```{r dend_ward}
+
+fviz_dend(x = dend_ward_5, k = 5, cex = 0.6)
+
+```
+
+```{r cor_ward50}
+print("Coeficiente de correlación entre las distancias cophenetic")
+cor(x = mat_dist5, cophenetic(dend_ward_5))
+
+```
+
+Finalmente, obtenemos una agrupación donde el coeficiente de correlación es bastante inferior, por lo que puede indicar que esta representación no respeta correctamente la distancia real entre las observaciones. Si vemos estos clusters en el plano:
+
+```{r plano_ward50}
+
+fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_ward_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
 
 ```
