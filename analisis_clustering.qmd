@@ -297,7 +297,7 @@ Utilizaremos este método con tres tipos de distancia: medio, completa y Ward. T
 
 ```{r enlace_media_50}
 
-mat_dist50 = dist(x = spotify_perc50[,3:9], method = "euclidean")
+mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
 
 # Dendograma
 dend_media_50 = hclust(d = mat_dist50, method = "average")

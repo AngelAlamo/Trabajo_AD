@@ -134,7 +134,9 @@ spotify2$released_season <- factor(spotify2$released_season,
                                    levels = orden_estaciones)
 ```
 
-## Top 50 canciones
+# Top 50 canciones
+
+##
 
 Añadimos la variable `genero`
 
@@ -157,9 +159,7 @@ top50canciones <- top50canciones %>%
   glimpse
 ```
 
-## Top 50 canciones
-
-### Valores de `genero`
+## Valores de `genero`
 
 -   Pop
 
@@ -173,7 +173,7 @@ top50canciones <- top50canciones %>%
 
 -   Hip-hop
 
-## Top 50 canciones
+##
 
 Consideramos solo las variables porcentuales
 
@@ -189,59 +189,34 @@ spotify_perc50 %>%
   glimpse
 ```
 
-## Top 50 canciones
-
-Centramos los datos:
-
-```{r top50 var porcentaje centrados, warning=FALSE}
-# Número de filas
-m = nrow(spotify_perc50)
-
-# Matriz de centrado
-Hm = diag(m) - 1/m
-
-# Datos centrados
-sp_perc_cen50 = as_tibble(Hm %*% as.matrix(spotify_perc50))
-
-sp_perc_cen50 <- sp_perc_cen50 %>% 
-  add_column(genero = genero, track_name = top50canciones$track_name) %>%
-  relocate(genero, .before = `dance%`) %>%
-  relocate(track_name, .before = genero) %>%
-  glimpse
-
-```
-
-## Top 50 canciones
-
-### Representación en el plano principal
+## Representación en el plano principal
 
 ```{r representacion}
-sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,3:9], scale = FALSE)
+sp_perc_acp50 = prcomp(spotify_perc50, scale = TRUE)
 
-fviz_pca_ind(sp_perc_cen_acp50, col.ind = sp_perc_cen50$genero, repel = TRUE,
+fviz_pca_ind(sp_perc_acp50, col.ind = top50canciones$genero, repel = TRUE,
              label = FALSE, title = "", legend.title = "Géneros musicales") + 
   theme_bw()
 
 # Por que me salen figuritas, solo quiero puntos de colores :(
 ```
 
-## Top 50 canciones
-
-### k-means
+## k-means
 
 ```{r}
 set.seed(123)
 
-km_clusters <- kmeans(x = sp_perc_cen50[,3:9], centers = 6, nstart = 25)
+km_clusters <- kmeans(x = spotify_perc50, centers = 6, nstart = 25)
 km_clusters
 ```
 
-## Top 50 canciones
+## k-means
 
-### k-means - Representación
+::: panel-tabset
+### Representación
 
 ```{r}
-fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent = TRUE,
+fviz_cluster(object = km_clusters, data = spotify_perc50, show.clust.cent = TRUE,
              ellipse.type = "euclid", star.plot = TRUE, repel = TRUE, title = "Método k-means, k = 6") + 
   theme_bw() +
   theme(legend.position = "none") +
@@ -249,9 +224,19 @@ fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent =
 
 ```
 
-## Top 50 canciones
+### Tabla de frecuencias
 
-### k-medoids
+```{r tabla mean, warning = FALSE}
+
+tabla_mean = as_tibble(cbind(km_clusters$cluster, genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_mean
+```
+:::
+
+## k-medoids
 
 ```{r repr_medoid_6}
 
@@ -262,9 +247,10 @@ spotify_pam_6
 
 ```
 
-## Top 50 canciones
+## k-medoids
 
-### k-medoids
+::: panel-tabset
+### Representación
 
 ```{r repr_medoids_6}
 
@@ -285,7 +271,7 @@ colnames(medoids6) <- c("x", "y")
 
 
 fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t", repel = TRUE,
-             main = "Representación con ACP", subtitle = "Método k-medoids, k = 6") +
+             main = "", subtitle = "Método k-medoids, k = 6") +
   theme_bw() +
   theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15)) +
   
@@ -293,38 +279,157 @@ fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t",
   geom_point(data = medoids6, color = "#683068", size = 2.5)
 ```
 
-## Top 50 canciones
+### Tabla de frecuencias
 
-### CJA con enlace completo
+```{r tabla medoid, warning = FALSE}
+
+tabla_medoids = as_tibble(cbind(spotify_pam_6$clustering, genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_medoids
+```
+:::
 
 
-```{r enlace_completo_50}
+## CJA enlace medio
+
+::: panel-tabset
+### Dendograma
+
+```{r enlace_media_50}
 
 mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
 
 # Dendograma
-dend_simple_50 = hclust(d = mat_dist50, method = "complete")
+dend_media_50 = hclust(d = mat_dist50, method = "average")
 
-fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
+fviz_dend(x = dend_media_50, k = 6, cex = 0.6)
 
 ```
 
-## Top 50 canciones
+### Correlación
 
-### CJA con enlace completo
+```{r cor_media50}
+# Para ver si la estructura refleja las distancias originales entre observaciones
+cor(x = mat_dist50, cophenetic(dend_media_50))
 
-## Top 50 canciones
+```
 
-### CJA con enlace simple
+### Representación
 
-## Top 50 canciones
+```{r plano_media50}
 
-### CJA con enlace simple
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_media_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
 
-## Top 50 canciones
+```
 
-### CJA con enlace simple
+### Tabla
 
-## Top 50 canciones
+```{r tabla media}
 
-### CJA con enlace simple
+tabla_media = as_tibble(cbind(cutree(dend_media_50, k = 6), genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_media
+```
+:::
+
+## CJA enlace completo
+
+::: panel-tabset
+### Dendograma
+
+
+```{r enlace_completo_50}
+
+# Dendograma
+dend_compl_50 = hclust(d = mat_dist50, method = "complete")
+
+fviz_dend(x = dend_compl_50, k = 6, cex = 0.6)
+
+```
+
+### Correlación
+
+```{r cor_compl50}
+cor(x = mat_dist50, cophenetic(dend_compl_50))
+
+```
+
+### Representación
+
+```{r plano_compl50}
+
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_compl_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+### Tabla
+
+```{r tabla_completa50}
+
+tabla_completa = as_tibble(cbind(cutree(dend_compl_50, k = 6), genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_completa
+
+```
+:::
+
+## CJA Ward
+
+::: panel-tabset
+### Dendograma
+
+```{r enlace_ward_50}
+
+# Dendograma
+dend_ward_50 = hclust(d = mat_dist50, method = "ward.D2")
+
+fviz_dend(x = dend_ward_50, k = 6, cex = 0.6)
+
+```
+
+### Correlación
+
+```{r cor_ward50}
+cor(x = mat_dist50, cophenetic(dend_ward_50))
+
+```
+
+### Representación
+
+```{r plano_ward50}
+
+fviz_cluster(object = list(data = spotify_perc50, cluster = cutree(dend_ward_50, k = 6)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+### Tabla
+
+```{r tabla_ward}
+
+tabla_ward = as_tibble(cbind(cutree(dend_ward_50, k = 6), genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_ward
+
+```
+:::
+
