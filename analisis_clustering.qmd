@@ -459,7 +459,7 @@ Vamos a realizar el mismo estudio ahora considerando otros datos y agrupaciones.
 
 Por lo tanto, consideramos los datos de los 5 artistas con más reproducciones: Taylor Swift, The Weeknd, Bad Bunny, SZA y Harry Styles
 
-```{r dataset_top3, warning= FALSE}
+```{r dataset_top5, warning= FALSE}
 
 # Dataset completo con solo los artistas top 5
 spotify_top5 = spotify2 %>% 
@@ -482,11 +482,18 @@ spotify_top5 %>%
 Otra vez solo consideramos las variables cuantitativas porcentuales que representan las características de cada canción:
 
 ```{r}
-spotify_perc5 = spotify_top5 %>% 
-  select(contains("%"))
+spotify_perc5 <- spotify_top5 %>% 
+  select(contains("%")) %>%
+  na.omit()
 
-spotify_perc5%>%
+spotify_perc5 <- spotify_perc5 %>%
+  mutate(track_name = spotify_top5$track_name, artist = spotify_top5$artist) %>% 
+  relocate(track_name, .before = `dance%`) %>% 
+  relocate(artist, .before = `dance%`) %>%
   glimpse
+
+
+
 ```
 
 ### Representación en el plano principal
@@ -495,7 +502,7 @@ spotify_perc5%>%
 Calculamos las componentes principales con la función `prcomp`:
 
 ```{r acp top5}
-sp_perc_acp5 = prcomp(spotify_perc5, scale = TRUE)
+sp_perc_acp5 = prcomp(spotify_perc5[,3:9], scale = TRUE)
 ```
 
 Veamos la representación de los puntos en el plano:
@@ -515,26 +522,49 @@ Empecemos el estudio del clustering con los diferentes métodos que conocemos:
 
 ### Método k-means.
 
-```{r}
-set.seed(12400)
-km_clusters1 <- kmeans(x = spotify_perc5, centers = 5, nstart = 25)
-km_clusters1
-```
+Elegimos previamente el número de clusters que deseamos. En nuestro caso, como el objetivo es agrupar por el nombre del artista que canta la canción, decidimos que el número de clusters sea 5. Los centros dejaremos que se seleccionen de manera aleatoria. Utilizando la función de R `kmeans`, obtenemos los siguientes resultados:
 
 ```{r}
-fviz_cluster(object = km_clusters1, data = spotify_perc5, show.clust.cent = TRUE,
+set.seed(12400)
+km_clusters1 <- kmeans(x = spotify_perc5[,3:9], centers = 5, nstart = 25)
+km_clusters1
+
+```
+En la primera línea tenemos los tamaños de los clusters: $16, 19, 32, 18, 26$.  Por otro lado, el porcentaje de variabilidad que explican los clusters es $65.1\%$. A continuación mostramos los grupos formados por el método *k-means* a partir de las dos primeras componentes principales:
+
+```{r}
+fviz_cluster(object = km_clusters1, data = spotify_perc5[,3:9], show.clust.cent = TRUE,
  ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
 theme_bw() +
 theme(legend.position = "none")
 ```
 
-### Método k-medoids.
+Por último, mostramos la tabla de frecuencias de los clusters respecto el género musical:
 
+```{r tabla mean5, warning = FALSE}
+artist <- c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")
+
+tabla_mean = as_tibble(cbind(km_clusters1$cluster, artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_mean
+```
+
+Podemos ver que este método no nos ha agrupado nada bien las canciones por los 5 artistas más escuchados. En general, cada cluster contiene varias canciones de distintos artistas y cada artista se encuentra en varios clusters. 
+
+
+### Método k-medoids.
+De la misma manera que en el método *k-means*, consideraremos $k = 6$ clusters. Si utilizamos la función ` pam ` de R, obtenemos los siguientes medoides:
+
+
+
+que corresponden a las observaciones `r spotify_pam_6$id.med` respectivamente. Si vemos los grupos formados en el plano a partir de las componentes principales:
 
 ```{r}
 
 
-spotify_pam5 <- pam(x = spotify_perc5, k = 5, metric = "euclidean")
+spotify_pam5 <- pam(x = spotify_perc5[,3:9], k = 5, metric = "euclidean")
 
 spotify_pam5$id.med
 ```
@@ -556,7 +586,7 @@ Veamos las agrupaciones en el plano a partir de las componentes principales, sol
 
 ```{r}
 # Para resaltar los medoides
-medoids5 <- prcomp(spotify_perc5, scale = TRUE)$x
+medoids5 <- prcomp(spotify_perc5[,3:9], scale = TRUE)$x
 
 # Se seleccionan únicamente las proyecciones de las observaciones que son medoids
 
@@ -578,13 +608,27 @@ fviz_cluster(object = spotify_pam5, data = spotify_perc_5, ellipse.type = "t", r
 
 ```
 
+Como vemos, los grupos que se forman se interesectan y no parece haber una distinción clara de los grupos. Por último, mostramos la tabla de frecuencias de los clusters respecto el género musical:
+
+
+```{r tabla medoid5, warning = FALSE}
+
+tabla_medoids = as_tibble(cbind(spotify_pam5$clustering, artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_medoids
+```
+
+
+En general, ningún artista pertenece a un único cluster, por lo tanto la agrupación obtenida a partir del método *k-medoids* no es del todo buena. Además de que en cada cluster pertenecen distintas canciones de cada artista, asi que otra vez no conseguimos agrupar bien las canciones por su autor.
 
 
 
 
 ### Método de clustering jerárquico aglomerativo.
 
-
+Otra vez utilizaremos este método con tres tipos de distancia: medio, completa y Ward los cuales tomarán como matriz de distancia la obtenida aplicando la distancia euclidea:
 
 
 #### Enlace completo:
@@ -604,24 +648,42 @@ fviz_dend(x = dend_complete_5, k = 5, cex = 0.6)
 
 ```
 
-
+A partir del dendograma podemos ver el proceso de construcción de estos grupos, donde hemos considerado $k = 5$ clusters. Como podemos observar, hay un cluster formado por un único elemento. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones a partir de la correlación: 
 
 ```{r}
 # Para ver si la estructura refleja las distancias originales entre observaciones
 cor(x = mat_dist5, cophenetic(dend_complete_5))
 
 ```
-
+Recordemos que se considera una buena representación si es $> 0.75$. En este caso, hemos obtenido una correlación aproximada de $0.65\%$ lo cual indica que no refleja del todo bien las distancias entre observaciones. Si vemos los grupos en el plano:
 
 ```{r}
 
-fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_complete_5, k = 5)),
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_complete_5, k = 5)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
 theme_bw()
 
 ```
+
+
+Vemos el grupo 1 con un solo elemento y bastante intersección entre los demás grupos. Aún así, podemos comprobar si se han agrupado correctamente los géneros:
+
+
+```{r tabla media5}
+
+tabla_media = as_tibble(cbind(cutree(dend_complete_5, k = 5), artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_media
+```
+
+
+De nuevo con este método tampoco obtenemos una buena agrupación de nuestras canciones por sus cantantes ya que nos volvemos a encontrar con artistas en cada cluster y agrupaciones con diferentes artistas.
+
+
 
 #### Enlace medio
 
@@ -646,17 +708,31 @@ cor(x = mat_dist5, cophenetic(dend_med_5))
 
 ```
 
-Tenemos dos agrupaciones principales y pese a ello el coeficiente de correlación entre las distancias es superior a la anterior, de aproximadamente $0.72$, por lo tanto esta estructura deberia reflejar las distancias originales entre las observaciones. Por último, veamos las agrupaciones en el plano:
+Tenemos dos agrupaciones principales y pese a ello el coeficiente de correlación entre las distancias es superior a la anterior, de aproximadamente $0.72$, por lo tanto esta estructura deberia reflejar mejor las distancias originales entre las observaciones. Por último, veamos las agrupaciones en el plano:
 
 ```{r}
 
-fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_med_5, k = 5)),
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_med_5, k = 5)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
 theme_bw()
 
 ```
+
+Tenemos que no hay ningún grupo que se intersecta y todo grupo formado parece tener un sentido considerarlos. Por último, si hacemos la tabla cluster género:
+
+```{r tabla_completa5}
+
+tabla_completa = as_tibble(cbind(cutree(dend_med_5, k = 5), artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_completa
+
+```
+Como era de esperar teniendo 3 agrupaciones de solo un elemento cada una, este método nos da otro mal resultado de agrupación de nuestras canciones por sus cantantes ya que nos volvemos a encontrar con artistas en cada cluster y agrupaciones con diferentes artistas.
+
 
 
 #### Ward
@@ -675,7 +751,7 @@ dend_ward_5 = hclust(d = mat_dist5, method = "ward.D2")
 fviz_dend(x = dend_ward_5, k = 5, cex = 0.6)
 
 ```
-
+Parece que del dendograma podemos ver, además del proceso de construcción de estos grupos, 5 agrupaciones bastante pobladas a diferencia de como nos ocurria en las anteriores. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones a partir de la correlación: 
 ```{r}
 print("Coeficiente de correlación entre las distancias cophenetic")
 cor(x = mat_dist5, cophenetic(dend_ward_5))
@@ -686,20 +762,33 @@ Finalmente, obtenemos una agrupación donde el coeficiente de correlación es ba
 
 ```{r}
 
-fviz_cluster(object = list(data = spotify_perc5, cluster = cutree(dend_ward_5, k = 5)),
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_ward_5, k = 5)),
  ellipse.type = "convex",
  repel = TRUE,
  show.clust.cent = FALSE) +
 theme_bw()
 
 ```
+Estos se intersecan los unos a los otros en gran cantidad a excepción de la agrupación número 6. Si vemos la tabla cluster-género:
 
 
+```{r tabla_ward2}
+
+tabla_ward = as_tibble(cbind(cutree(dend_ward_5, k = 5), artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_ward
+
+```
+
+Como vemos, este tampoco será una buena agrupación para nuestro estudio por el mismo motivo que los anteriores métodos.
 
 
+## Conclusiones
 
+Nos ha sido imposible agrupar las canciones de los 5 artistas más escuchados en Spotify de acuerdo con sus cantantes agrupando por las características de las cacniones, lo que nos indica que las canciones de cada artista no siguen un patron de acorde a que sus canciones sean todas parecidas característicamente.
 
-
-
+En cuanto al intento de agrupación de las 50 canciones más escuchadas de Spotify por género musical de acuerdo a las características de las canciones, en general en todos los métodos usados hemos obtenido practicamente el mismo resultado: una agrupación eficaz de algunas canciones del género pop pero una dispersión entre clusters de los demás géneros. Podriamos decir que la mejor agrupación la obtenemos con el método clustering jerárquico aglomerativo completo ya que consigue una agrupación completa del género rock, a pesar  de contener algo de "ruido" ya que también hay observaciones de otros géneros musicales en esa agrupación,la mejor agrupación del género dancehall comparado con los demás métodos.
 
 
