@@ -1,30 +1,330 @@
 ---
 title: "Análisis con clustering"
+author: "by Óscar Vanrell, Ángel Álamo y Juanjo Doblas"
 format: revealjs
 editor: visual
-author: 
-  - name: Ángel Álamo
-  - name: Juanjo Doblas
-  - name: Óscar Vanrell 
-execute:
-  echo: false
+embed-resources: true
 ---
 
-## Quarto
+```{r librerias, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library("factoextra")
+library("ggfortify")
+library(cluster)
+```
 
-Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+## Índice
 
-## Bullets
+1.  50 canciones más escuchadas
 
-When you click the **Render** button a document will be generated that includes:
+    -   K-means
 
--   Content authored with markdown
--   Output from executable code
+    -   K-medoids
 
-## Code
+    -   Clustering jerárquico aglomerativo
 
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+        -   Enlace completo
+
+        -   Enlace medio
+
+        -   Ward
+
+## Índice
+
+2.  Canciones de los 5 artistas más escuchados
+
+    -   K-means
+
+    -   K-medoids
+
+    -   Clustering jerárquico aglomerativo
+
+        -   Enlace completo
+
+        -   Enlace medio
+
+        -   Ward
+
+```{r dataset, warning=FALSE}
+spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
+
+breaks_bpm = c("60", "100", "120", "210")
+
+# Cambiamos el tipo de los valores
+spotify2 <- spotify %>% 
+  mutate(streams = as.numeric(streams),
+         released_month = as.ordered(released_month),
+         released_day = as.ordered(released_day),
+         key = factor(key, levels = c("C", "C#", "D", "D#", "E", "F", "G", "G#", "A", "A#", "B"))) %>%
+  mutate(across(where(is.character), as.factor)) %>% # chr a factor
+  mutate(artist_count = as.factor(artist_count)) %>% 
+  
+  # Creamos la variable colaboración
+  mutate("collaboration" = case_when(
+    artist_count == 1 ~ "solo",
+    artist_count %in% 2:10 ~ "collaboration", 
+    NA ~ NA)) %>%
+  
+  # Creamos y añadimos la variable reproducciones por artista y la posicionamos antes de el dia de lanzamiento
+  group_by(`artist(s)_name`) %>%
+  #mutate("songs_per_artist" = n()) %>% 
+  mutate("artist_streams" = sum(streams)) %>%
+  ungroup() %>%
+  #relocate(songs_per_artist, .before = released_year )
+  
+  # Creamos las variables "rango_bpm" ; "tempo"
+  mutate(rango_bpm = cut(bpm, breaks = breaks_bpm, include.lowest = TRUE),
+         tempo = factor(case_when(
+           between(bpm, 60, 100) ~ "Lenta",
+           between(bpm, 101, 120) ~ "Normal",
+           between(bpm, 121, 210) ~ "Rápida"
+         ))) %>% 
+  relocate(rango_bpm, .before = key) %>% 
+  relocate(tempo, .after = rango_bpm) %>% 
+  
+  # Renombramos variables
+  dplyr::rename("dance%" = `danceability_%`,
+         "valence%" = `valence_%`,
+        "energy%" = `energy_%`,
+         "acoustic%" = `acousticness_%`,
+         "instrumental%" = `instrumentalness_%`,
+         "live%" = `liveness_%`,
+         "speech%" = `speechiness_%`,
+         artist = `artist(s)_name`) %>% 
+  
+  # Creamos la variable epoca
+  mutate(epoca = case_when(
+  between(released_year, 1930, 1999) ~ "Epoca_1",
+  between(released_year, 2000, 2015) ~ "Epoca_2",
+  between(released_year, 2016, 2021) ~ "Epoca_3",
+  between(released_year, 2022, 2023) ~ "Epoca_4",
+  )) %>% 
+  relocate(epoca, .after = released_year) %>% 
+  mutate(epoca = ordered(epoca, labels = c("Epoca_1", "Epoca_2", "Epoca_3", "Epoca_4"))) %>% 
+  
+  # Añadimos la variable estación de lanzamiento
+  mutate("released_season" = case_when(
+    released_month %in% c(12, 1, 2) ~ "winter",
+    released_month %in% 3:5 ~ "spring",
+    released_month %in% 6:8 ~ "summer",
+    released_month %in% 9:11 ~ "autumn",
+    NA ~ NA)) %>% 
+  
+  # Necesario para definir la variable época
+  mutate(released_year = as.ordered(released_year)) %>% 
+
+  # Eliminamos ciertas variables
+  dplyr::select(!contains("charts")) %>% 
+  
+  # Recolocamos las variables
+  relocate(streams, .after = artist_count) %>% 
+  relocate(released_day, .before = released_year) %>% 
+  relocate(released_month, .before = released_year) %>% 
+  relocate(artist, .before = track_name) %>%
+  relocate(released_season, .before = released_year) %>%
+  relocate(artist_streams, .before = released_day) %>%
+  relocate(collaboration, .before = streams)
+
+# Orden personalizado de las estaciones del año
+orden_estaciones <- c("spring", "summer", "autumn", "winter")
+
+# Cambia el orden de las estaciones del año
+spotify2$released_season <- factor(spotify2$released_season,
+                                   levels = orden_estaciones)
+```
+
+## Top 50 canciones
+
+Añadimos la variable `genero`
+
+```{r top 50 canciones con genero, warning=FALSE}
+top50canciones <- spotify2 %>% 
+  slice_max(streams, n = 50)
+
+genero <- c("pop", "dancehall", "pop", "electronic", "hip-hop", "dancehall",
+            "pop", "popRock", "electronic", "pop", "pop", "popRock", "pop", "pop",
+            "pop", "pop", "pop", "dancehall", "hip-hop", "popRock", "pop", "pop",
+            "electronic", "rock", "popRock", "popRock", "dancehall", "pop", "pop",
+            "popRock", "pop", "dancehall", "hip-hop", "hip-hop", "hip-hop",
+            "dancehall", "popRock", "pop", "popRock", "hip-hop", "hip-hop", "pop",
+            "rock", "dancehall", "hip-hop", "rock", "dancehall", "popRock",
+            "rock", "hip-hop")
+
+top50canciones <- top50canciones %>%
+  add_column(genero = genero) %>%
+  relocate(genero, .after = track_name) %>%
+  glimpse
+```
+
+## Top 50 canciones
+
+### Valores de `genero`
+
+-   Pop
+
+-   Dancehall: incluye las canciones pop/dance y hemos añadido la única que pertenece al género reggaeton/trap
+
+-   PopRock
+
+-   Rock
+
+-   Electronic
+
+-   Hip-hop
+
+## Top 50 canciones
+
+Consideramos solo las variables porcentuales
+
+```{r var porcentajes top50, warning=FALSE}
+spotify_perc50 <- top50canciones %>% 
+  select(contains("%")) %>% 
+  na.omit()
+
+spotify_perc50 %>%
+  mutate(track_name = top50canciones$track_name, genero = top50canciones$genero) %>% 
+  relocate(track_name, .before = `dance%`) %>% 
+  relocate(genero, .before = `dance%`) %>% 
+  glimpse
+```
+
+## Top 50 canciones
+
+Centramos los datos:
+
+```{r top50 var porcentaje centrados, warning=FALSE}
+# Número de filas
+m = nrow(spotify_perc50)
+
+# Matriz de centrado
+Hm = diag(m) - 1/m
+
+# Datos centrados
+sp_perc_cen50 = as_tibble(Hm %*% as.matrix(spotify_perc50))
+
+sp_perc_cen50 <- sp_perc_cen50 %>% 
+  add_column(genero = genero, track_name = top50canciones$track_name) %>%
+  relocate(genero, .before = `dance%`) %>%
+  relocate(track_name, .before = genero) %>%
+  glimpse
+
+```
+
+## Top 50 canciones
+
+### Representación en el plano principal
+
+```{r representacion}
+sp_perc_cen_acp50 = prcomp(sp_perc_cen50[,3:9], scale = FALSE)
+
+fviz_pca_ind(sp_perc_cen_acp50, col.ind = sp_perc_cen50$genero, repel = TRUE,
+             label = FALSE, title = "", legend.title = "Géneros musicales") + 
+  theme_bw()
+
+# Por que me salen figuritas, solo quiero puntos de colores :(
+```
+
+## Top 50 canciones
+
+### k-means
 
 ```{r}
-1 + 1
+set.seed(123)
+
+km_clusters <- kmeans(x = sp_perc_cen50[,3:9], centers = 6, nstart = 25)
+km_clusters
 ```
+
+## Top 50 canciones
+
+### k-means - Representación
+
+```{r}
+fviz_cluster(object = km_clusters, data = sp_perc_cen50[,3:9], show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE, title = "Método k-means, k = 6") + 
+  theme_bw() +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15))
+
+```
+
+## Top 50 canciones
+
+### k-medoids
+
+```{r repr_medoid_6}
+
+
+spotify_pam_6 <- pam(x = spotify_perc50, k = 6, metric = "euclidean", nstart = 50)
+
+spotify_pam_6
+
+```
+
+## Top 50 canciones
+
+### k-medoids
+
+```{r repr_medoids_6}
+
+id_medoids6 = c(30, 9, 3, 41, 25, 49)
+
+# Para resaltar los medoides
+medoids6 <- prcomp(spotify_perc50, scale = TRUE)$x
+
+# Se seleccionan únicamente las proyecciones de las observaciones que son medoids
+
+medoids6 <- medoids6[id_medoids6, c("PC1", "PC2")]
+
+
+medoids6 <- as.data.frame(medoids6)
+
+# Se emplean los mismos nombres que en el objeto ggplot
+colnames(medoids6) <- c("x", "y")
+
+
+fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t", repel = TRUE,
+             main = "Representación con ACP", subtitle = "Método k-medoids, k = 6") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 20), plot.subtitle = element_text(size = 15)) +
+  
+  #Medoides 
+  geom_point(data = medoids6, color = "#683068", size = 2.5)
+```
+
+## Top 50 canciones
+
+### CJA con enlace completo
+
+
+```{r enlace_completo_50}
+
+mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
+
+# Dendograma
+dend_simple_50 = hclust(d = mat_dist50, method = "complete")
+
+fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
+
+```
+
+## Top 50 canciones
+
+### CJA con enlace completo
+
+## Top 50 canciones
+
+### CJA con enlace simple
+
+## Top 50 canciones
+
+### CJA con enlace simple
+
+## Top 50 canciones
+
+### CJA con enlace simple
+
+## Top 50 canciones
+
+### CJA con enlace simple

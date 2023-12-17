@@ -22,7 +22,7 @@ library("ggfortify")
 library(cluster)
 ```
 
-```{r dataset var cuant, warning=FALSE}
+```{r dataset, warning=FALSE}
 spotify = read_csv(file = "spotify-2023.csv", show_col_types = FALSE)
 
 breaks_bpm = c("60", "100", "120", "210")
@@ -169,8 +169,9 @@ spotify_perc50 <- top50canciones %>%
   na.omit()
 
 spotify_perc50 %>%
-  mutate(track_name = top50canciones$track_name) %>% 
+  mutate(track_name = top50canciones$track_name, genero = top50canciones$genero) %>% 
   relocate(track_name, .before = `dance%`) %>% 
+  relocate(genero, .before = `dance%`) %>% 
   glimpse
 ```
 
@@ -311,7 +312,7 @@ fviz_cluster(object = spotify_pam, data = spotify_perc_50, ellipse.type = "t", r
 
 ```
 
-Els espacio que forman los grupos no son muy diferenciados, en el sentido de que intersecan con otros grupos, por lo tanto, podemos deducir que la agrupación no es del todo buena, aunque esto puede ser debido a la poca explicación de la varianza de las componentes principales, que es aproximadamente de un $50\%$.
+El espacio que forman los grupos no son muy diferenciados, en el sentido de que intersecan con otros grupos, por lo tanto, podemos deducir que la agrupación no es del todo buena, aunque esto puede ser debido a la poca explicación de la varianza de las componentes principales, que es aproximadamente de un $50\%$.
 
 Si comparamos con el caso en que consideramos $k = 6$ clusters (el "correcto"):
 
@@ -359,26 +360,30 @@ fviz_cluster(object = spotify_pam_6, data = spotify_perc_50, ellipse.type = "t",
 
 ### Método de clustering jerárquico aglomerativo
 
-Utilizaremos este método con tres tipos de distancia: simple, completa y Ward. Todos ellos utilizarán como matriz de distancia la obtenida aplicando la distanica euclidea:
+Utilizaremos este método con tres tipos de distancia:completa, media y Ward. Todos ellos utilizarán como matriz de distancia la obtenida aplicando la distanica euclidea:
 
-#### Enlace simple:
+#### Enlace completo:
 
-```{r enlace_simple_50}
+```{r enlace_completo_50}
 
 mat_dist50 = dist(x = spotify_perc50, method = "euclidean")
 
 # Dendograma
-dend_simple_50 = hclust(d = mat_dist50, method = "single")
+dend_simple_50 = hclust(d = mat_dist50, method = "complete")
 
 ```
 
-```{r dend_simple}
+```{r dend_completo}
 
 fviz_dend(x = dend_simple_50, k = 6, cex = 0.6)
 
 ```
 
-Como vemos, los clusters obtenidos (hemos considerado $k = 6$) no son nada descriptivos, tenemos 4 grupos formados por un único elemento, otro grupo formado por dos elementos y un grupo que contiene los elementos restantes, de los cuales no podemos deducir mucho. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones: 
+```{r interpretacion enlace simple}
+# Como vemos, los clusters obtenidos (hemos considerado $k = 6$) no son nada descriptivos, tenemos 4 grupos formados por un único elemento, otro grupo formado por dos elementos y un grupo que contiene los elementos restantes, de los cuales no podemos deducir mucho. Podemos comprobar si este dendograma realmente refleja las distancias originales entre observaciones: 
+```
+
+
 
 
 ```{r cor_simple50}
