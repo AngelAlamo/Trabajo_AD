@@ -136,7 +136,7 @@ spotify2$released_season <- factor(spotify2$released_season,
 
 # Top 50 canciones
 
-##
+## 
 
 Añadimos la variable `genero`
 
@@ -173,7 +173,7 @@ top50canciones <- top50canciones %>%
 
 -   Hip-hop
 
-##
+## 
 
 Consideramos solo las variables porcentuales
 
@@ -291,7 +291,6 @@ tabla_medoids
 ```
 :::
 
-
 ## CJA enlace medio
 
 ::: panel-tabset
@@ -344,7 +343,6 @@ tabla_media
 
 ::: panel-tabset
 ### Dendograma
-
 
 ```{r enlace_completo_50}
 
@@ -425,6 +423,303 @@ theme_bw()
 ```{r tabla_ward}
 
 tabla_ward = as_tibble(cbind(cutree(dend_ward_50, k = 6), genero)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_ward
+
+```
+:::
+
+
+
+
+# Top 5 artistas
+
+## 
+
+Consideramos los 5 artistas Taylor Swift, The Weeknd, Bad Bunny, SZA, Harry Styles
+```{r dataset_top5, warning= FALSE}
+
+# Dataset completo con solo los artistas top 5
+spotify_top5 = spotify2 %>% 
+  filter(artist %in% c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")) %>% 
+  mutate(artist = as.character(artist)) %>%
+  mutate(artist = as.factor(artist)) %>% 
+  arrange(artist)
+  
+spotify_top5 %>% 
+  glimpse
+
+
+```
+
+
+
+
+
+## 
+
+Consideramos solo las variables porcentuales
+
+```{r}
+spotify_perc5 <- spotify_top5 %>% 
+  select(contains("%")) %>%
+  na.omit()
+
+spotify_perc5 <- spotify_perc5 %>%
+  mutate(track_name = spotify_top5$track_name, artist = spotify_top5$artist) %>% 
+  relocate(track_name, .before = `dance%`) %>% 
+  relocate(artist, .before = `dance%`) %>%
+  glimpse
+
+```
+
+
+## Representación en el plano principal
+
+```{r acp top5}
+sp_perc_acp5 = prcomp(spotify_perc5[,3:9], scale = TRUE)
+
+fviz_pca_ind(sp_perc_acp5, col.ind = spotify_top5$artist, repel = TRUE,
+             label = FALSE, title = "Gráfico de los top5 artistas con ACP",
+             subtitle = "Variables porcentuales") + 
+  theme_bw() +
+  theme(plot.title = element_text(size = 15),
+        plot.subtitle = element_text(size = 12))
+
+# Por que me salen figuritas, solo quiero puntos de colores :(
+```
+
+
+
+## k-means
+
+```{r}
+set.seed(123)
+
+km_clusters1 <- kmeans(x = spotify_perc5[,3:9], centers = 5, nstart = 25)
+km_clusters1
+```
+
+## k-means
+
+::: panel-tabset
+### Representación
+
+```{r}
+fviz_cluster(object = km_clusters1, data = spotify_perc5[,3:9], show.clust.cent = TRUE,
+ ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+theme_bw() +
+theme(legend.position = "none")
+
+```
+
+### Tabla de frecuencias
+
+```{r tabla mean5, warning = FALSE}
+
+artist <- c("Taylor Swift", "The Weeknd", "Bad Bunny", "SZA", "Harry Styles")
+
+tabla_mean = as_tibble(cbind(km_clusters1$cluster, artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_mean
+```
+:::
+
+## k-medoids
+
+```{r repr_medoid_5}
+
+
+spotify_pam5 <- pam(x = spotify_perc5[,3:9], k = 5, metric = "euclidean")
+
+spotify_pam5
+
+```
+
+## k-medoids
+
+::: panel-tabset
+### Representación
+
+```{r repr_medoids_5}
+
+id_medoids5 = c(96,58,8,16,36)
+# Para resaltar los medoides
+medoids5 <- prcomp(spotify_perc5[,3:9], scale = TRUE)$x
+
+# Se seleccionan únicamente las proyecciones de las observaciones que son medoids
+
+medoids5 <- medoids5[id_medoids5, c("PC1", "PC2")]
+
+
+medoids5 <- as.data.frame(medoids5)
+# Se emplean los mismos nombres que en el objeto ggplot
+colnames(medoids5) <- c("x", "y")
+
+
+fviz_cluster(object = spotify_pam5, data = spotify_perc_5, ellipse.type = "t", repel = TRUE) +
+  theme_bw() +
+  labs(title = "Representación con Componentes Principales") +
+  theme(legend.position = "none") +
+  
+  #Medoides 
+  geom_point(data = medoids5, color = "#EE0606", size = 2)
+
+
+
+```
+
+### Tabla de frecuencias
+
+```{r tabla medoid5, warning = FALSE}
+
+
+tabla_medoids = as_tibble(cbind(spotify_pam5$clustering, artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_medoids
+```
+:::
+
+## CJA enlace medio
+
+::: panel-tabset
+### Dendograma
+
+```{r enlace_media_5}
+
+mat_dist5 = dist(x = spotify_perc5, method = "euclidean")
+
+# Dendograma
+dend_med_5 = hclust(d = mat_dist5, method = "average")
+
+fviz_dend(x = dend_med_5, k = 5, cex = 0.6)
+
+```
+
+### Correlación
+
+```{r cor_media5}
+
+print("Coeficiente de correlación entre las distancias cophenetic")
+cor(x = mat_dist5, cophenetic(dend_med_5))
+
+
+```
+
+### Representación
+
+```{r plano_media5}
+
+
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_med_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+### Tabla
+
+```{r tabla media5}
+
+tabla_completa = as_tibble(cbind(cutree(dend_med_5, k = 5), artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_completa
+```
+:::
+
+## CJA enlace completo
+
+::: panel-tabset
+### Dendograma
+
+```{r enlace_completo_5}
+
+# Dendograma
+dend_complete_5 = hclust(d = mat_dist5, method = "complete")
+
+fviz_dend(x = dend_complete_5, k = 5, cex = 0.6)
+
+```
+
+### Correlación
+
+```{r cor_compl5}
+cor(x = mat_dist5, cophenetic(dend_complete_5))
+
+```
+
+### Representación
+
+```{r plano_compl5}
+
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_complete_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+### Tabla
+
+```{r tabla_completa5}
+
+
+tabla_media = as_tibble(cbind(cutree(dend_complete_5, k = 5), artist)) %>% 
+  rename("Cluster" = "V1") %>% 
+  table()
+
+tabla_media
+
+```
+:::
+
+## CJA Ward
+
+::: panel-tabset
+### Dendograma
+
+```{r enlace_ward_5}
+
+# Dendograma
+dend_ward_5 = hclust(d = mat_dist5, method = "ward.D2")
+
+
+fviz_dend(x = dend_ward_5, k = 5, cex = 0.6)
+
+```
+
+### Correlación
+
+```{r cor_ward5}
+cor(x = mat_dist5, cophenetic(dend_ward_5))
+```
+
+### Representación
+
+```{r plano_ward5}
+fviz_cluster(object = list(data = spotify_perc5[,3:9], cluster = cutree(dend_ward_5, k = 5)),
+ ellipse.type = "convex",
+ repel = TRUE,
+ show.clust.cent = FALSE) +
+theme_bw()
+
+```
+
+### Tabla
+
+```{r tabla_ward5}
+tabla_ward = as_tibble(cbind(cutree(dend_ward_5, k = 5), artist)) %>% 
   rename("Cluster" = "V1") %>% 
   table()
 
